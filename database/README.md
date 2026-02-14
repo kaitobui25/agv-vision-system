@@ -6,8 +6,8 @@ PostgreSQL database for AGV system logging.
 
 ```bash
 psql -U postgres
-CREATE DATABASE agv_vision_db;
-\c agv_vision_db
+CREATE DATABASE agv_control_db;
+\c agv_control_db
 \i init.sql
 ```
 
