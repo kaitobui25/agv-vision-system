@@ -55,7 +55,7 @@ desktop.ini
 .env.local
 *.log
 
-# YOLOv8 models
+# YOLOv11 models
 *.pt
 models/
 

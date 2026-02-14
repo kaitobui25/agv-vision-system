@@ -2,6 +2,10 @@
 
 PostgreSQL database for AGV system logging.
 
+## Database Architecture
+
+![ERD](/docs/images/agv_control_db.png)
+
 ## Setup
 
 ```bash

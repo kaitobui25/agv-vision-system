@@ -12,13 +12,13 @@ Create PostgreSQL schema with business-driven tables
 3. Test:
 ```bash
    psql -U postgres
-   CREATE DATABASE agv_vision_db;
-   \c agv_vision_db
+   CREATE DATABASE agv_control_db;
+   \c agv_control_db
    \i database/init.sql
 ```
 4. Verify: Run sample queries for 3 business cases
 
 ## Success Criteria
-- [ ] All tables created
-- [ ] Foreign keys work
+- [x] All tables created
+- [x] Foreign keys work
 - [ ] Can answer: "Did AI detect before collision?"
