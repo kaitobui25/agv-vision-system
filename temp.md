@@ -4,7 +4,7 @@ Simple camera capture module using OpenCV for AGV vision system.
 
 ## Overview
 
-Captures frames from USB webcam at 1 FPS and saves to `/camera/images/latest.jpg` for Vision AI processing.
+Captures frames from USB webcam at 1 FPS and saves to `images/latest.jpg` for Vision AI processing.
 
 ## Features
 
@@ -17,7 +17,7 @@ Captures frames from USB webcam at 1 FPS and saves to `/camera/images/latest.jpg
 
 ### Requirements
 
-- Python 3.14+
+- Python 3.9+
 - USB webcam (built-in laptop camera works)
 
 ### Installation
@@ -38,7 +38,7 @@ python camera_server.py
 This will:
 1. Open default USB camera (index 0)
 2. Capture frames every 1 second
-3. Save to `/camera/images/latest.jpg`
+3. Save to `images/latest.jpg`
 4. Log each capture operation
 
 ### Output
@@ -48,7 +48,7 @@ This will:
 2024-01-15 10:30:00 - camera - INFO - Camera opened: 640x480
 2024-01-15 10:30:00 - camera - INFO - Output directory: /path/to/images
 2024-01-15 10:30:00 - camera - INFO - Capture interval: 1.0s
-2024-01-15 10:30:01 - camera - INFO - Saved: /camera/images/latest.jpg
+2024-01-15 10:30:01 - camera - INFO - Saved: images/latest.jpg
 2024-01-15 10:30:01 - camera - INFO - Frame #1 captured successfully
 ```
 
@@ -58,9 +58,7 @@ Edit these constants in `camera_server.py`:
 
 ```python
 CAMERA_ID = 0           # USB camera index (0=default, 1=external)
-BASE_DIR = Path(__file__).resolve().parent
-OUTPUT_DIR = BASE_DIR / "images"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR = Path("images")
 CAPTURE_INTERVAL = 1.0  # seconds between captures
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
@@ -120,17 +118,6 @@ If capture takes >1s, reduce resolution:
 IMAGE_WIDTH = 320
 IMAGE_HEIGHT = 240
 ```
-
-## Integration with Vision AI
-
-The captured `images/latest.jpg` is read by Vision AI module:
-
-```
-camera_server.py  →  images/latest.jpg  →  vision-ai (POST /detect)
-```
-
-See `vision-ai/README.md` for API details.
-
 
 ## Database Integration
 
@@ -205,10 +192,10 @@ Camera works **without database**:
 
 ## Integration with Vision AI
 
-The captured `/camera/images/latest.jpg` is read by Vision AI module:
+The captured `images/latest.jpg` is read by Vision AI module:
 
 ```
-camera_server.py  →  /camera/images/latest.jpg  →  vision-ai (POST /detect)
+camera_server.py  →  images/latest.jpg  →  vision-ai (POST /detect)
         ↓                                           ↓
    system_logs                                 detections
 ```
@@ -224,7 +211,7 @@ See `vision-ai/README.md` for API details.
 python camera_server.py
 
 # Terminal 2: Check output
-ls -lh /camera/images/latest.jpg
+ls -lh images/latest.jpg
 ```
 
 ### Integration Test

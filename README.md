@@ -13,7 +13,7 @@
 
 A complete AGV (Automated Guided Vehicle) warehouse automation system demonstrating:
 
-- **AI Vision Processing** - YOLOv8 object detection for obstacle avoidance
+- **AI Vision Processing** - YOLOv11 object detection for obstacle avoidance
 - **Path Planning** - A* algorithm for optimal route calculation  
 - **Industrial Communication** - Modbus TCP for motor control
 - **Database Integration** - PostgreSQL for centralized logging
@@ -31,13 +31,25 @@ Camera → Vision AI → AGV Control → Hardware Controller → Motor Movement
 ```
 agv-vision-system/
 ├── camera/              # Camera capture module (Python + OpenCV)
-├── vision-ai/           # Object detection API (Python + FastAPI + YOLOv8)
+│   ├── camera_server.py # Runs camera capture and logs to DB
+│   └── images/          # Captured frames (output directory)
+│
+├── vision-ai/           # Object detection API (Python + FastAPI + YOLOv11)
+│   └── app.py           # Main FastAPI app, logs detections + system events
+│
 ├── agv-control/         # Path planning & control (C# .NET)
 ├── hardware-sim/        # Motor controller (C++ Modbus server)
 ├── database/            # PostgreSQL schema and migrations
+│   └── init.sql         # Database tables: detections, paths, system_logs
+│
+├── common/              # Shared Python utilities
+│   └── db_logger.py     # DetectionLogger & SystemLogger + DB connection
+│
 ├── docker/              # Docker Compose configuration
 ├── docs/                # Documentation
-└── scripts/             # Utility scripts
+├── scripts/             # Utility scripts
+└── requirements.txt     # Python dependencies (psycopg2, fastapi, opencv, etc.)
+
 ```
 
 ---
@@ -46,7 +58,7 @@ agv-vision-system/
 
 ### Prerequisites
 - Docker & Docker Compose
-- Python 3.9+ (for local dev)
+- Python 3.14+ (for local dev)
 - .NET 8.0 SDK (for local dev)
 - CMake & C++ compiler (for hardware sim)
 - PostgreSQL 15+

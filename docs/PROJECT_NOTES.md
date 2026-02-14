@@ -87,7 +87,7 @@ Schema was designed by asking: "What questions does the business need to answer?
 
 - [x] Project skeleton (folders, READMEs, .gitignore, LICENSE)
 - [x] Architecture documentation
-- [ ] database/init.sql
+- [x] database/init.sql
 - [ ] camera/ (Python)
 - [ ] vision-ai/ (Python)
 - [ ] agv-control/ (C# — in VS2022)
@@ -138,7 +138,7 @@ Clean Code, SOLID, DRY, KISS, YAGNI, Naming Convention, Clean Architecture
 
 - [x] プロジェクトスケルトン (フォルダ、README、.gitignore、LICENSE)
 - [x] アーキテクチャドキュメント
-- [ ] database/init.sql
+- [x] database/init.sql
 - [ ] camera/ (Python)
 - [ ] vision-ai/ (Python)
 - [ ] agv-control/ (C# — VS2022)
@@ -202,7 +202,7 @@ Cả hai cùng mở chung 1 folder, không conflict.
 
 - [x] Skeleton project (folders, README, .gitignore)
 - [x] Tài liệu kiến trúc
-- [ ] database/init.sql ← **bắt đầu từ đây**
+- [x] database/init.sql ← **bắt đầu từ đây**
 - [ ] camera/ + vision-ai/ (Python)
 - [ ] agv-control/ (C# — code trong VS2022)
 - [ ] hardware-sim/ (C++ — code trong VS2022)

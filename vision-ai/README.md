@@ -1,6 +1,6 @@
 # Vision AI Module
 
-YOLOv8-based object detection API for warehouse automation.
+YOLOv11-based object detection API for warehouse automation.
 
 ## Setup
 

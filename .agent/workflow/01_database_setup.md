@@ -22,3 +22,5 @@ Create PostgreSQL schema with business-driven tables
 - [x] All tables created
 - [x] Foreign keys work
 - [ ] Can answer: "Did AI detect before collision?"
+
+## ⏭️ Next Step: ./02_camera&vision.md
