@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![C#](https://img.shields.io/badge/C%23-.NET_8.0-purple.svg)](https://dotnet.microsoft.com/)
 [![C++](https://img.shields.io/badge/C++-17-00599C.svg)](https://isocpp.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18+-336791.svg)](https://www.postgresql.org/)
 
 ---
 
@@ -61,7 +61,7 @@ agv-vision-system/
 - Python 3.14+ (for local dev)
 - .NET 8.0 SDK (for local dev)
 - CMake & C++ compiler (for hardware sim)
-- PostgreSQL 15+
+- PostgreSQL 18+
 
 ### Run with Docker
 ```bash

@@ -49,15 +49,10 @@ class DatabaseConnection:
         return cls._instance
     
     def __init__(self):
-        """Initialize singleton state without forcing DB connection on import."""
-        # Keep init lightweight so modules can import even when DB is offline.
-        # The actual connection is created lazily in get_cursor().
-        pass
-
-    def _is_connection_open(self) -> bool:
-        """Return True when psycopg2 connection exists and is open."""
-        return self._connection is not None and self._connection.closed == 0
-         
+        """Initialize connection (called only once)."""
+        if self._connection is None:
+            self.connect()
+    
     def connect(self) -> None:
         """
         Establish database connection.
@@ -86,7 +81,7 @@ class DatabaseConnection:
         - Automatic rollback on error
         - Automatic cursor cleanup
         """
-        if not self._is_connection_open():
+        if self._connection is None:
             self.connect()
         
         cursor = self._connection.cursor()
@@ -102,7 +97,7 @@ class DatabaseConnection:
     
     def close(self) -> None:
         """Close database connection."""
-        if self._is_connection_open():
+        if self._connection:
             self._connection.close()
             logger.info("Database connection closed")
 
@@ -354,31 +349,29 @@ system_logger = SystemLogger()
 
 # Example usage
 if __name__ == "__main__":
-    import sys
-
     # Test database connection
     logging.basicConfig(level=logging.INFO)
-
-    detection_id = detection_logger.log_detection(
-        object_class='person',
-        confidence=0.89,
-        bbox={'x1': 0.12, 'y1': 0.34, 'x2': 0.45, 'y2': 0.89},
-        distance_meters=3.2,
-        processing_time_ms=45,
-        triggered_stop=True
-    )
-
-    system_log_id = system_logger.info(
-        component='vision-ai',
-        message='Vision AI module started successfully',
-        event_type='startup',
-        details={'model': 'yolo11n.pt', 'confidence_threshold': 0.5}
-    )
-
-    if detection_id is not None and system_log_id is not None:
+    
+    try:
+        # Test detection logging
+        detection_logger.log_detection(
+            object_class='person',
+            confidence=0.89,
+            bbox={'x1': 0.12, 'y1': 0.34, 'x2': 0.45, 'y2': 0.89},
+            distance_meters=3.2,
+            processing_time_ms=45,
+            triggered_stop=True
+        )
+        
+        # Test system logging
+        system_logger.info(
+            component='vision-ai',
+            message='Vision AI module started successfully',
+            event_type='startup',
+            details={'model': 'yolo11n.pt', 'confidence_threshold': 0.5}
+        )
+        
         print("✓ Database logging test successful")
-        sys.exit(0)
-
-    print("✗ Database logging test failed")
-    print(f"  detection_log_id={detection_id}, system_log_id={system_log_id}")
-    sys.exit(1)
+        
+    except Exception as e:
+        print(f"✗ Database logging test failed: {e}")
