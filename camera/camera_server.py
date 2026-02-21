@@ -9,12 +9,18 @@ Clean Architecture:
 - KISS: Simple capture loop, no complex logic
 """
 
+import sys
 import cv2
 import time
 import logging
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
+from pathlib import Path
+
+# Detect root directory for imports
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 # Import database logger
 try:
