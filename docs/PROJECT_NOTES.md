@@ -88,8 +88,8 @@ Schema was designed by asking: "What questions does the business need to answer?
 - [x] Project skeleton (folders, READMEs, .gitignore, LICENSE)
 - [x] Architecture documentation
 - [x] database/init.sql
-- [ ] camera/ (Python)
-- [ ] vision-ai/ (Python)
+- [x] camera/ (Python)
+- [x] vision-ai/ (Python) — FastAPI + YOLOv11s detection API
 - [ ] agv-control/ (C# — in VS2022)
 - [ ] hardware-sim/ (C++ — in VS2022)
 - [ ] docker-compose.yml
@@ -139,8 +139,8 @@ Clean Code, SOLID, DRY, KISS, YAGNI, Naming Convention, Clean Architecture
 - [x] プロジェクトスケルトン (フォルダ、README、.gitignore、LICENSE)
 - [x] アーキテクチャドキュメント
 - [x] database/init.sql
-- [ ] camera/ (Python)
-- [ ] vision-ai/ (Python)
+- [x] camera/ (Python)
+- [x] vision-ai/ (Python) — FastAPI + YOLOv11s 物体検出API
 - [ ] agv-control/ (C# — VS2022)
 - [ ] hardware-sim/ (C++ — VS2022)
 - [ ] docker-compose.yml
@@ -202,7 +202,8 @@ Cả hai cùng mở chung 1 folder, không conflict.
 
 - [x] Skeleton project (folders, README, .gitignore)
 - [x] Tài liệu kiến trúc
-- [x] database/init.sql ← **bắt đầu từ đây**
-- [ ] camera/ + vision-ai/ (Python)
+- [x] database/init.sql 
+- [x] camera/ (Python)
+- [x] vision-ai/ (Python) — FastAPI + YOLOv11s detection API
 - [ ] agv-control/ (C# — code trong VS2022)
 - [ ] hardware-sim/ (C++ — code trong VS2022)

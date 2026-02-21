@@ -1,0 +1,15 @@
+# Vision AI Module Dependencies
+# Python 3.14+
+
+# Web framework
+fastapi>=0.129.12
+uvicorn>=0.40.0
+
+# YOLO object detection (includes torch, opencv, numpy)
+ultralytics>=8.4.14
+
+# File upload support for FastAPI
+python-multipart>=0.0.22
+
+# Database integration (optional — can run without it)
+psycopg2-binary>=2.9.11
