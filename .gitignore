@@ -67,7 +67,7 @@ test_videos/
 docker-compose.override.yml
 
 # Image
-images/latest.jpg
+camera/images/latest.jpg
 
 # Gemini
 *.gemini
