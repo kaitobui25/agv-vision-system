@@ -323,9 +323,9 @@ class SystemLogger:
         except Exception as e:
             logger.error(f"Failed to log system event: {e}")
             return None
-    
+ 
     # Convenience methods for different log levels
-    
+
     def debug(self, component: str, message: str, **kwargs):
         """Log DEBUG level event."""
         return self.log_event('DEBUG', component, kwargs.pop('event_type', 'debug'), message, **kwargs)

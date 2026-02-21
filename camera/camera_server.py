@@ -104,8 +104,6 @@ class CameraCapture:
         
         Returns:
             Frame as numpy array, or None if capture failed
-            
-        Naming Convention: Verb + Noun (capture + frame)
         """
         if self.cap is None or not self.cap.isOpened():
             logger.error("Camera not opened")
