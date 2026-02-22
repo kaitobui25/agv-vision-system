@@ -1,0 +1,14 @@
+# YOLO Fine-tune Config — Home Demo Dataset
+# Usage: yolo detect train data=training/configs/warehouse_finetune.yaml
+
+# Dataset paths (relative to this file's parent: training/)
+path: ../datasets
+train: images/train
+val: images/val
+test: images/test
+
+# Class definitions — home demo objects
+names:
+  0: truck
+  1: fan
+  2: bolling-pin
