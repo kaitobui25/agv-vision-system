@@ -71,3 +71,7 @@ camera/images/latest.jpg
 
 # Gemini
 *.gemini
+
+# Training
+datasets/
+runs/

@@ -10,6 +10,7 @@
 ## Purpose
 
 Mini project to demonstrate skills for a job application. The target role requires:
+
 - Image processing / Deep Learning / AI algorithm development
 - AGV control software: communication, server/DB design, robot control logic
 - Skills: C#, C++, Python, PostgreSQL, Docker
@@ -18,28 +19,27 @@ Mini project to demonstrate skills for a job application. The target role requir
 
 5 modules, each using a different language to match JD requirements:
 
-| Module | Language | Purpose |
-|---|---|---|
-| `camera/` | Python + OpenCV | Capture images |
-| `vision-ai/` | Python + FastAPI + YOLOv11 | Object detection API |
-| `agv-control/` | C# .NET 8.0 | Path planning (A*), orchestration |
-| `hardware-sim/` | C++ + libmodbus | Simulate AGV motor controller (Modbus TCP) |
-| `database/` | PostgreSQL | Centralized logging |
+| Module          | Language                   | Purpose                                    |
+| --------------- | -------------------------- | ------------------------------------------ |
+| `camera/`       | Python + OpenCV            | Capture images                             |
+| `vision-ai/`    | Python + FastAPI + YOLOv11 | Object detection API                       |
+| `agv-control/`  | C# .NET 8.0                | Path planning (A\*), orchestration         |
+| `hardware-sim/` | C++ + libmodbus            | Simulate AGV motor controller (Modbus TCP) |
+| `database/`     | PostgreSQL                 | Centralized logging                        |
 
 ## Operational Flow
+
 1. Camera captures image
    └─> Python + YOLO detects "Box ahead"
-       └─> FastAPI returns to C#: {"obstacle": "box", "distance": "2m"}
+   └─> FastAPI returns to C#: {"obstacle": "box", "distance": "2m"}
 
 2. C# (agv-control) receives result
    └─> Calculates: "Need to turn left"
-       └─> Calls C++ DLL: TurnLeft(30°)
+   └─> Calls C++ DLL: TurnLeft(30°)
 
 3. C++ (hardware-sim) receives command
-   └─> libmodbus sends to Motor Controller:
-       - Left motor: 300 RPM
-       - Right motor: 500 RPM
-       └─> AGV turns left successfully! 
+   └─> libmodbus sends to Motor Controller: - Left motor: 300 RPM - Right motor: 500 RPM
+   └─> AGV turns left successfully!
 
 ## Development Workflow
 
@@ -65,16 +65,22 @@ Both tools work on the same folder. No conflict.
 Schema was designed by asking: "What questions does the business need to answer?"
 
 ### Case 1: Collision Investigation
+
 > "AGV collided 3 times. Did the AI detect the obstacle?"
+
 - Need: `detections` table (object_class, confidence, timestamp)
 - Need: `system_logs` table (event type, timestamp, AGV speed)
 
 ### Case 2: Route Optimization
+
 > "AGV takes 5 minutes for 20 meters. What route did it take?"
+
 - Need: `paths` table (start/end point, waypoints, duration)
 
 ### Case 3: Daily Operations Report
+
 > "How many trips yesterday? Any errors? Battery level?"
+
 - Need: `paths` (count trips), `system_logs` (errors, battery)
 
 ## Key Technical Concepts Discussed
@@ -101,34 +107,34 @@ Schema was designed by asking: "What questions does the business need to answer?
 ## プロジェクト概要
 
 AGV（無人搬送車）ビジョン制御システムのミニプロジェクト。求人要件に合わせて作成：
+
 - 画像処理・AIアルゴリズム開発
 - AGV制御ソフトウェア：通信、サーバー/DB設計、ロボット制御ロジック
 - 使用技術：C#、C++、Python、PostgreSQL、Docker
 
 ## アーキテクチャ
 
-| モジュール | 言語 | 目的 |
-|---|---|---|
-| `camera/` | Python + OpenCV | 画像キャプチャ |
-| `vision-ai/` | Python + FastAPI + YOLOv11 | 物体検出API |
-| `agv-control/` | C# .NET 8.0 | 経路計画（A*）、統合制御 |
-| `hardware-sim/` | C++ + libmodbus | モーター制御シミュレータ（Modbus TCP） |
-| `database/` | PostgreSQL | 統合ログ管理 |
+| モジュール      | 言語                       | 目的                                   |
+| --------------- | -------------------------- | -------------------------------------- |
+| `camera/`       | Python + OpenCV            | 画像キャプチャ                         |
+| `vision-ai/`    | Python + FastAPI + YOLOv11 | 物体検出API                            |
+| `agv-control/`  | C# .NET 8.0                | 経路計画（A\*）、統合制御              |
+| `hardware-sim/` | C++ + libmodbus            | モーター制御シミュレータ（Modbus TCP） |
+| `database/`     | PostgreSQL                 | 統合ログ管理                           |
 
 ## 動作フロー
+
 1. カメラが画像を撮影
    └─> Python + YOLOが「前方の箱」を検出
-       └─> FastAPIがC#に返却: {"obstacle": "box", "distance": "2m"}
+   └─> FastAPIがC#に返却: {"obstacle": "box", "distance": "2m"}
 
 2. C# (agv-control) が結果を受信
    └─> 計算: 「左折が必要」
-       └─> C++ DLLを呼び出し: TurnLeft(30°)
+   └─> C++ DLLを呼び出し: TurnLeft(30°)
 
 3. C++ (hardware-sim) がコマンドを受信
-   └─> libmodbusがモーターコントローラーに送信:
-       - 左モーター: 300 RPM
-       - 右モーター: 500 RPM
-       └─> AGVが左折に成功!
+   └─> libmodbusがモーターコントローラーに送信: - 左モーター: 300 RPM - 右モーター: 500 RPM
+   └─> AGVが左折に成功!
 
 ## 開発方針
 
@@ -152,38 +158,38 @@ Clean Code, SOLID, DRY, KISS, YAGNI, Naming Convention, Clean Architecture
 ## Mục tiêu
 
 Mini project để show với nhà tuyển dụng. Yêu cầu công việc:
+
 - Xử lý ảnh / Deep Learning / AI algorithm
 - Phần mềm điều khiển AGV: giao tiếp, thiết kế server/DB, robot control logic
 - Kỹ năng: C#, C++, Python, PostgreSQL, Docker
 
 ## Kiến trúc
 
-| Module | Ngôn ngữ | Mục đích |
-|---|---|---|
-| `camera/` | Python + OpenCV | Chụp ảnh |
-| `vision-ai/` | Python + FastAPI + YOLOv11 | API phát hiện vật thể |
-| `agv-control/` | C# .NET 8.0 | Tìm đường (A*), điều phối |
-| `hardware-sim/` | C++ + libmodbus | Giả lập motor controller (Modbus TCP) |
-| `database/` | PostgreSQL | Lưu log tập trung |
+| Module          | Ngôn ngữ                   | Mục đích                              |
+| --------------- | -------------------------- | ------------------------------------- |
+| `camera/`       | Python + OpenCV            | Chụp ảnh                              |
+| `vision-ai/`    | Python + FastAPI + YOLOv11 | API phát hiện vật thể                 |
+| `agv-control/`  | C# .NET 8.0                | Tìm đường (A\*), điều phối            |
+| `hardware-sim/` | C++ + libmodbus            | Giả lập motor controller (Modbus TCP) |
+| `database/`     | PostgreSQL                 | Lưu log tập trung                     |
 
 ## Luồng hoạt động HOÀN CHỈNH
+
 1. Camera chụp ảnh
    └─> Python + YOLO phát hiện "Thùng hàng phía trước"
-       └─> FastAPI trả về C#: {"obstacle": "box", "distance": 2m}
+   └─> FastAPI trả về C#: {"obstacle": "box", "distance": 2m}
 
 2. C# (agv-control) nhận kết quả
    └─> Tính toán: "Cần rẽ trái"
-       └─> Gọi C++ DLL: TurnLeft(30°)
+   └─> Gọi C++ DLL: TurnLeft(30°)
 
 3. C++ (hardware-sim) nhận lệnh
-   └─> libmodbus gửi đến Motor Controller:
-       - Motor trái: 300 RPM
-       - Motor phải: 500 RPM
-       └─> AGV rẽ trái thành công! ✅
+   └─> libmodbus gửi đến Motor Controller: - Motor trái: 300 RPM - Motor phải: 500 RPM
+   └─> AGV rẽ trái thành công! ✅
 
 ## Nguyên tắc phát triển
 
-**Clean Code, SOLID, DRY, KISS, YAGNI, Naming Convention, Clean Architecture** 
+**Clean Code, SOLID, DRY, KISS, YAGNI, Naming Convention, Clean Architecture**
 
 ## Phân chia công cụ
 
@@ -202,8 +208,9 @@ Cả hai cùng mở chung 1 folder, không conflict.
 
 - [x] Skeleton project (folders, README, .gitignore)
 - [x] Tài liệu kiến trúc
-- [x] database/init.sql 
+- [x] database/init.sql
 - [x] camera/ (Python)
 - [x] vision-ai/ (Python) — FastAPI + YOLOv11s detection API
 - [ ] agv-control/ (C# — code trong VS2022)
 - [ ] hardware-sim/ (C++ — code trong VS2022)
+- [ ] docker-compose.yml
