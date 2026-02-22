@@ -36,7 +36,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_NAME = "yolo11s.pt"  # Small model (~22MB), good balance speed/accuracy
+MODEL_NAME = "best.pt"  # Small model (~22MB), good balance speed/accuracy
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 CAMERA_IMAGE_PATH = PROJECT_ROOT / "camera" / "images" / "latest.jpg"
 
