@@ -1,4 +1,3 @@
-```markdown
 # Virtual Environment — Separate Python Environment for Each Project
 
 ## What is `venv`?
@@ -12,6 +11,7 @@ It allows each project to have its own dependencies and package versions without
 ## Why Do We Need It?
 
 Imagine your computer has two projects:
+
 ```
 
 Project A → needs requests==2.0
@@ -28,7 +28,7 @@ With `venv`:
 Project A → its own .venv → requests==2.0 ✅
 Project B → its own .venv → requests==3.0 ✅
 
-````
+```
 
 Each project has its own isolated “Python box” and they do not interfere with each other.
 
@@ -40,7 +40,7 @@ Each project has its own isolated “Python box” and they do not interfere wit
 
 ```python
 python -m venv .venv
-````
+```
 
 This creates a folder named `.venv` inside your project.
 
