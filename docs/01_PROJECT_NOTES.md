@@ -89,6 +89,12 @@ Schema was designed by asking: "What questions does the business need to answer?
 - **Multi-layer safety**: Real AGV uses YOLO (software) + LiDAR + bumper sensor + emergency stop. Never rely on AI alone.
 - **Detection latency**: Camera → YOLO → Decision → Brake takes ~600ms. At 1m/s, AGV moves 60cm before stopping.
 
+## Key Decisions (2026-02)
+
+- **agv-control**: ASP.NET Web API (not console app) — provides REST endpoints for orchestration
+- **Modbus Register Map**: Shared contract documented in `docs/04_MODBUS_REGISTER_MAP.md` — both C# and C++ follow same spec
+- **Differential Drive**: 2 motors (left/right), holding registers 1000-1002, input registers 2000-2007
+
 ## Current Progress
 
 - [x] Project skeleton (folders, READMEs, .gitignore, LICENSE)
@@ -96,7 +102,8 @@ Schema was designed by asking: "What questions does the business need to answer?
 - [x] database/init.sql
 - [x] camera/ (Python)
 - [x] vision-ai/ (Python) — FastAPI + YOLOv11s detection API
-- [ ] agv-control/ (C# — in VS2022)
+- [x] Modbus Register Map — shared contract (docs/04_MODBUS_REGISTER_MAP.md)
+- [ ] agv-control/ (C# ASP.NET Web API — in VS2022)
 - [ ] hardware-sim/ (C++ — in VS2022)
 - [ ] docker-compose.yml
 
@@ -140,6 +147,12 @@ AGV（無人搬送車）ビジョン制御システムのミニプロジェク�
 
 Clean Code, SOLID, DRY, KISS, YAGNI, Naming Convention, Clean Architecture
 
+## 主要な決定事項 (2026-02)
+
+- **agv-control**: ASP.NET Web API（コンソールアプリではない）
+- **Modbus Register Map**: `docs/04_MODBUS_REGISTER_MAP.md` に共通仕様を文書化
+- **差動駆動**: 2モーター（左/右）、Holding Registers 1000-1002、Input Registers 2000-2007
+
 ## 現在の進捗
 
 - [x] プロジェクトスケルトン (フォルダ、README、.gitignore、LICENSE)
@@ -147,7 +160,8 @@ Clean Code, SOLID, DRY, KISS, YAGNI, Naming Convention, Clean Architecture
 - [x] database/init.sql
 - [x] camera/ (Python)
 - [x] vision-ai/ (Python) — FastAPI + YOLOv11s 物体検出API
-- [ ] agv-control/ (C# — VS2022)
+- [x] Modbus Register Map — 共通仕様 (docs/04_MODBUS_REGISTER_MAP.md)
+- [ ] agv-control/ (C# ASP.NET Web API — VS2022)
 - [ ] hardware-sim/ (C++ — VS2022)
 - [ ] docker-compose.yml
 
@@ -204,6 +218,12 @@ Cả hai cùng mở chung 1 folder, không conflict.
 - **Case tối ưu đường đi**: Đi route nào, mấy phút? → bảng `paths` (waypoints, duration)
 - **Case báo cáo**: Mấy chuyến, có lỗi gì? → bảng `system_logs`
 
+## Quyết định quan trọng (2026-02)
+
+- **agv-control**: ASP.NET Web API (không phải console app)
+- **Modbus Register Map**: Tài liệu chung tại `docs/04_MODBUS_REGISTER_MAP.md` — cả C# và C++ code theo spec này
+- **Differential Drive**: 2 motor (trái/phải), holding registers 1000-1002, input registers 2000-2007
+
 ## Tiến độ hiện tại
 
 - [x] Skeleton project (folders, README, .gitignore)
@@ -211,6 +231,7 @@ Cả hai cùng mở chung 1 folder, không conflict.
 - [x] database/init.sql
 - [x] camera/ (Python)
 - [x] vision-ai/ (Python) — FastAPI + YOLOv11s detection API
-- [ ] agv-control/ (C# — code trong VS2022)
+- [x] Modbus Register Map — tài liệu chung (docs/04_MODBUS_REGISTER_MAP.md)
+- [ ] agv-control/ (C# ASP.NET Web API — code trong VS2022)
 - [ ] hardware-sim/ (C++ — code trong VS2022)
 - [ ] docker-compose.yml

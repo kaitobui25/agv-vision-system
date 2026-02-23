@@ -21,8 +21,9 @@ Listens on Modbus TCP port 502.
 
 ## Modbus Register Map
 
-- Register 100: Motor Speed (RPM)
-- Register 101: Direction (0=Stop, 1=Forward, 2=Reverse)
-- Register 102: Current Position (mm) [Read Only]
-- Register 103: Battery Level (%) [Read Only]
-- Register 104: Emergency Stop (0=Normal, 1=Stop)
+See [docs/04_MODBUS_REGISTER_MAP.md](../docs/04_MODBUS_REGISTER_MAP.md) for the complete register specification.
+
+Summary:
+
+- **Holding Registers** (1000-1002): Motor speeds (left/right) + command
+- **Input Registers** (2000-2007): Status, actual speeds, position (x,y), heading, battery, error code
