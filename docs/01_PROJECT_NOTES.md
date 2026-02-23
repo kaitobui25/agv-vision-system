@@ -29,17 +29,22 @@ Mini project to demonstrate skills for a job application. The target role requir
 
 ## Operational Flow
 
-1. Camera captures image
-   └─> Python + YOLO detects "Box ahead"
-   └─> FastAPI returns to C#: {"obstacle": "box", "distance": "2m"}
+1. Camera captures image → saves to `camera/images/latest.jpg`
 
-2. C# (agv-control) receives result
-   └─> Calculates: "Need to turn left"
-   └─> Calls C++ DLL: TurnLeft(30°)
+2. C# (agv-control) polls Vision AI every 100ms
+   └─> GET `http://localhost:8000/detect/latest`
+   └─> Vision AI runs YOLO → returns {detections: [{class: "box", confidence: 0.85}]}
 
-3. C++ (hardware-sim) receives command
-   └─> libmodbus sends to Motor Controller: - Left motor: 300 RPM - Right motor: 500 RPM
-   └─> AGV turns left successfully!
+3. C# converts detection → grid coordinates (with radian + camera offset)
+   └─> Runs A* pathfinding on 40x20 grid
+   └─> Calculates motor speeds for next waypoint
+
+4. C# writes Modbus TCP registers to C++ (hardware-sim)
+   └─> [1000]=300 (left RPM), [1001]=500 (right RPM), [1002]=1 (MOVE)
+
+5. C++ simulates motor movement, updates position
+   └─> C# polls feedback: [2000]=MOVING, [2003]=x, [2004]=y, [2006]=battery
+   └─> All events logged to PostgreSQL
 
 ## Development Workflow
 
@@ -135,17 +140,22 @@ AGV（無人搬送車）ビジョン制御システムのミニプロジェク�
 
 ## 動作フロー
 
-1. カメラが画像を撮影
-   └─> Python + YOLOが「前方の箱」を検出
-   └─> FastAPIがC#に返却: {"obstacle": "box", "distance": "2m"}
+1. カメラが画像を撮影 → `camera/images/latest.jpg` に保存
 
-2. C# (agv-control) が結果を受信
-   └─> 計算: 「左折が必要」
-   └─> C++ DLLを呼び出し: TurnLeft(30°)
+2. C# (agv-control) が100msごとにVision AIをポーリング
+   └─> GET `http://localhost:8000/detect/latest`
+   └─> Vision AIがYOLO実行 → {detections: [{class: "box", confidence: 0.85}]} を返却
 
-3. C++ (hardware-sim) がコマンドを受信
-   └─> libmodbusがモーターコントローラーに送信: - 左モーター: 300 RPM - 右モーター: 500 RPM
-   └─> AGVが左折に成功!
+3. C# が検出結果をグリッド座標に変換（ラジアン変換 + カメラオフセット）
+   └─> 40x20グリッドでA*経路計画を実行
+   └─> 次のウェイポイントへのモーター速度を計算
+
+4. C# がModbus TCPレジスタをC++ (hardware-sim) に書き込み
+   └─> [1000]=300 (左RPM), [1001]=500 (右RPM), [1002]=1 (MOVE)
+
+5. C++ がモーター動作をシミュレーション、位置を更新
+   └─> C# がフィードバックをポーリング: [2000]=MOVING, [2003]=x, [2004]=y, [2006]=battery
+   └─> 全イベントをPostgreSQLに記録
 
 ## 開発方針
 
@@ -197,17 +207,22 @@ Mini project để show với nhà tuyển dụng. Yêu cầu công việc:
 
 ## Luồng hoạt động HOÀN CHỈNH
 
-1. Camera chụp ảnh
-   └─> Python + YOLO phát hiện "Thùng hàng phía trước"
-   └─> FastAPI trả về C#: {"obstacle": "box", "distance": 2m}
+1. Camera chụp ảnh → lưu vào `camera/images/latest.jpg`
 
-2. C# (agv-control) nhận kết quả
-   └─> Tính toán: "Cần rẽ trái"
-   └─> Gọi C++ DLL: TurnLeft(30°)
+2. C# (agv-control) poll Vision AI mỗi 100ms
+   └─> GET `http://localhost:8000/detect/latest`
+   └─> Vision AI chạy YOLO → trả về {detections: [{class: "box", confidence: 0.85}]}
 
-3. C++ (hardware-sim) nhận lệnh
-   └─> libmodbus gửi đến Motor Controller: - Motor trái: 300 RPM - Motor phải: 500 RPM
-   └─> AGV rẽ trái thành công! ✅
+3. C# chuyển detection → toạ độ grid (đổi radian + cộng camera offset)
+   └─> Chạy A* pathfinding trên grid 40x20
+   └─> Tính tốc độ motor cho waypoint tiếp theo
+
+4. C# ghi Modbus TCP registers sang C++ (hardware-sim)
+   └─> [1000]=300 (left RPM), [1001]=500 (right RPM), [1002]=1 (MOVE)
+
+5. C++ giả lập motor, cập nhật vị trí
+   └─> C# poll feedback: [2000]=MOVING, [2003]=x, [2004]=y, [2006]=battery
+   └─> Mọi event được log vào PostgreSQL ✅
 
 ## Nguyên tắc phát triển
 
