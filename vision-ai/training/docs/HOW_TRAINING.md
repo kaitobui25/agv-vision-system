@@ -30,46 +30,46 @@ Dùng roboflow.com để thực hiện labeling
 1. New project > Object Detection
 2. Upload image > save and continue
 3. Lúc này image se nằm ở Unassigned
-   ![ERD](/docs/images/img_001.JPG)
+   ![Roboflow](images/img_001.JPG)
 
 4. Chọn Label Myself
 5. Chọn Box Prompting
-   ![ERD](/docs/images/img_002.JPG)
+   ![Roboflow](images/img_002.JPG)
 
 6. Đăt tên cho class
 7. Nhấn mũi tên qua phải rồi Vẽ tiếp cho các vật còn lại
 8. Làm y chang vậy cho khoảng 10 tấm hơn gì đó.
 9. Trở lại thư mục Annotate, sẽ thấy những tấm đã được annotate
     > trong ảnh là 1 tấm đã được annotate, 9 tấm chưa
-    > ![ERD](/docs/images/img_003.JPG)
+    > ![Roboflow](images/img_003.JPG)
 10. Click vào đống ảnh đó và chọn vào mục Annotated
-    ![ERD](/docs/images/img_004.JPG)
+    ![Roboflow](images/img_004.JPG)
 11. Chọn Add...image to Dataset
 12. Trong thư mục Annotate lại chọn vào đống ảnh còn lại trong Annotating
-    ![ERD](/docs/images/img_005.JPG)
+    ![Roboflow](images/img_005.JPG)
 13. Chọn ... để di chuyển 9 tấm ảnh dó vào lại cột Unassigned
-    ![ERD](/docs/images/img_006.JPG)
+    ![Roboflow](images/img_006.JPG)
     đã move
-    ![ERD](/docs/images/img_007.JPG)
+    ![Roboflow](images/img_007.JPG)
 14. Chọn vào 9 tấm đó để Auto Labeling
-    ![ERD](/docs/images/img_008.JPG)
+    ![Roboflow](images/img_008.JPG)
 15. Chọn instant để giúp tự động phát hiện class, instant này được tạo ra từ bước 11 khi add image to dataset (maybe :) )
     Chọn xong thì check xem đã đủ 3 class theo mong muốn chưa
-    ![ERD](/docs/images/img_009.JPG)
+    ![Roboflow](images/img_009.JPG)
 16. Nhấn Auto General
 17. Nó sẽ hiện ra 4 tấm mà dựa theo cái instant đã chọn , nó phán đoán các vật trong ảnh.
     Cứ click next để xem nó chọn có đúng không.
-    ![ERD](/docs/images/img_010.JPG)
+    ![Roboflow](images/img_010.JPG)
 18. Nếu thấy ok rồi thì click vào Auto Label with this Model
 19. Nó sẽ chạy tự động để vẽ vật cho mình hết 9 tấm còn lại.
-    ![ERD](/docs/images/img_011.JPG)
+    ![Roboflow](images/img_011.JPG)
 20. Sau khi chạy xong, nhiệm vụ của mình là check lại xem nó vẽ đúng không
-    ![ERD](/docs/images/img_012.JPG)
+    ![Roboflow](images/img_012.JPG)
 21. Click vào từng tấm ảnh và nhấn Approve nếu đồng ý những gì nó vẽ.
 22. Add Approved to Dataset
-    ![ERD](/docs/images/img_013.JPG)
+    ![Roboflow](images/img_013.JPG)
 23. Kết quả thành công 10 ảnh trong Dataset
-    ![ERD](/docs/images/img_014.JPG)
+    ![Roboflow](images/img_014.JPG)
 
 ## Version
 
@@ -82,9 +82,9 @@ Giờ đã có Dataset, tiếp tục lấy ra thư viện phù hợp với model
    Validation (ảnh để kiểm tra trong lúc học)
    Test (ảnh để thi thật)
    Chọn Rebalance để phân phối cho 3 mục đich trên
-   ![ERD](/docs/images/img_015.JPG)
+   ![Roboflow](images/img_015.JPG)
 4. Resize chọn Fit black edges in 640x640
-   ![ERD](/docs/images/img_016.JPG)
+   ![Roboflow](images/img_016.JPG)
 5. Add thêm 1 vài augmentation để nó tự động tạo ra thêm nhiều biến thể dự trên 10 tấm ảnh đã add vào.
    a. Flip > Horizontal
    b. Brightness -25 +25
@@ -94,9 +94,9 @@ Giờ đã có Dataset, tiếp tục lấy ra thư viện phù hợp với model
 8. Download Dataset
 9. YoLov11
 10. Show download code > Continue
-    ![ERD](/docs/images/img_017.JPG)
+    ![Roboflow](images/img_017.JPG)
 11. Copy đoạn mã python để đem vào google colap để training
-    ![ERD](/docs/images/img_018.JPG)
+    ![Roboflow](images/img_018.JPG)
 
 ## Training
 
@@ -104,7 +104,7 @@ Training bằng colab.research.google.com
 
 1. New notebook in drive
 2. Chuyển sao T4 Gpu > nhấn connect
-   ![ERD](/docs/images/img_019.JPG)
+   ![GG Colab](images/img_019.JPG)
 3. install ultralytics và roboflow trước
 
 ```python
@@ -113,9 +113,9 @@ Training bằng colab.research.google.com
 
 4. Restart runtime
 5. Chạy code roboflow để load data
-   ![ERD](/docs/images/img_020.JPG)
+   ![GG Colab](images/img_020.JPG)
    sau khi chạy xong thì....
-   ![ERD](/docs/images/img_021.JPG)
+   ![GG Colab](images/img_021.JPG)
 6. Kiểm tra xem có file yaml chưa. Có rồi thì yên tâm đi train
 
 ```python
@@ -139,18 +139,18 @@ model.train(
 ```
 
 Nếu ko có lỗi thì...
-![ERD](/docs/images/img_022.JPG)
+![GG Colab](images/img_022.JPG)
 
 8. Sau khi train xong thì file best.pt được lưu vào đây
-   ![ERD](/docs/images/img_023.JPG)
+   ![GG Colab](images/img_023.JPG)
 
 9. Tải về
-   ![ERD](/docs/images/img_024.JPG)
+   ![GG Colab](images/img_024.JPG)
 
 ## Chạy thử
 
 1. Copy file best.pt vừa tải về vào folder vision-ai
 2. Trong file app.py đổi tên model yolov11s -> best.pt
-   ![ERD](/docs/images/img_025.JPG)
+   ![app.py](images/img_025.JPG)
 
 Thành công!!
