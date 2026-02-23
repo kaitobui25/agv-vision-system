@@ -25,6 +25,17 @@
 - Different speed → turn
 - Opposite direction → spin in place
 
+### Physical Constants
+
+| Constant         | Value  | Unit | Description                                      |
+| ---------------- | ------ | ---- | ------------------------------------------------ |
+| wheel_base       | 400    | mm   | Distance between left and right wheels            |
+| wheel_radius     | 50     | mm   | Wheel radius                                      |
+| camera_offset    | 300    | mm   | Distance from rotation center to camera (front)   |
+
+> **Camera offset**: Camera is mounted at front bumper, 300mm ahead of the wheel axis (center of rotation).
+> When Vision AI reports `distance = 2000mm`, actual distance from AGV center = `2000 + 300 = 2300mm`.
+
 ---
 
 ## Holding Registers (Read/Write)

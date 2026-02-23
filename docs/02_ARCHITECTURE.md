@@ -47,10 +47,12 @@ The AGV Vision Control System consists of 5 main components working together:
 ### 3. AGV Control Server
 
 - **Language**: C#
-- **Framework**: .NET 8.0
+- **Framework**: ASP.NET Web API (.NET 8.0)
 - **Purpose**: Path planning and orchestration
-- **Algorithms**: A\* pathfinding
-- **Communication**: REST API (Vision), Modbus TCP (Hardware)
+- **Algorithms**: A\* pathfinding on 40x20 grid (warehouse 20x10m, cell 500mm)
+- **Communication**: REST API client (Vision AI), Modbus TCP client (Hardware)
+- **API Endpoints**: `/health`, `/agv/start`, `/agv/stop`, `/agv/emergency-stop`, `/agv/status`, `/agv/map`
+- **Control Loop**: BackgroundService polling every 100ms
 
 ### 4. Hardware Simulator
 
@@ -79,8 +81,8 @@ The AGV Vision Control System consists of 5 main components working together:
 ## Technology Stack
 
 - **Python**: Vision AI, Camera
-- **C#**: AGV Control
+- **C#**: AGV Control (ASP.NET Web API)
 - **C++**: Hardware Simulator
 - **PostgreSQL**: Database
 - **Docker**: Containerization
-- **Modbus TCP**: Industrial communication protocol
+- **Modbus TCP**: Industrial communication protocol (see `docs/04_MODBUS_REGISTER_MAP.md`)

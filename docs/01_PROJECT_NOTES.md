@@ -94,6 +94,10 @@ Schema was designed by asking: "What questions does the business need to answer?
 - **agv-control**: ASP.NET Web API (not console app) — provides REST endpoints for orchestration
 - **Modbus Register Map**: Shared contract documented in `docs/04_MODBUS_REGISTER_MAP.md` — both C# and C++ follow same spec
 - **Differential Drive**: 2 motors (left/right), holding registers 1000-1002, input registers 2000-2007
+- **Grid Map**: Static warehouse layout 20x10m, cell size 500mm → grid 40x20. Static walls + dynamic obstacles from Vision AI
+- **Control Loop**: BackgroundService polling every 100ms. agv-control polls Vision AI (GET `/detect/latest`)
+- **API Endpoints**: `/health`, `/agv/start`, `/agv/stop`, `/agv/emergency-stop`, `/agv/status`, `/agv/map`
+- **Vision → Grid Mapping**: Radian conversion (heading/10 × π/180), camera offset (+300mm), bounds check before grid access. Skip obstacle inflation (KISS)
 
 ## Current Progress
 
@@ -152,6 +156,10 @@ Clean Code, SOLID, DRY, KISS, YAGNI, Naming Convention, Clean Architecture
 - **agv-control**: ASP.NET Web API（コンソールアプリではない）
 - **Modbus Register Map**: `docs/04_MODBUS_REGISTER_MAP.md` に共通仕様を文書化
 - **差動駆動**: 2モーター（左/右）、Holding Registers 1000-1002、Input Registers 2000-2007
+- **グリッドマップ**: 倉庫レイアウト 20x10m、セルサイズ 500mm → グリッド 40x20。静的壁 + Vision AIからの動的障害物
+- **制御ループ**: BackgroundService、100msポーリング。agv-controlがVision AIをポーリング
+- **APIエンドポイント**: `/health`, `/agv/start`, `/agv/stop`, `/agv/emergency-stop`, `/agv/status`, `/agv/map`
+- **Vision→グリッド変換**: ラジアン変換、カメラオフセット(+300mm)、配列境界チェック。障害物膨張は省略(KISS)
 
 ## 現在の進捗
 
@@ -223,6 +231,10 @@ Cả hai cùng mở chung 1 folder, không conflict.
 - **agv-control**: ASP.NET Web API (không phải console app)
 - **Modbus Register Map**: Tài liệu chung tại `docs/04_MODBUS_REGISTER_MAP.md` — cả C# và C++ code theo spec này
 - **Differential Drive**: 2 motor (trái/phải), holding registers 1000-1002, input registers 2000-2007
+- **Grid Map**: Warehouse tĩnh 20x10m, cell 500mm → grid 40x20. Tường cố định + obstacles động từ Vision AI
+- **Control Loop**: BackgroundService polling 100ms. agv-control chủ động poll Vision AI (GET `/detect/latest`)
+- **API Endpoints**: `/health`, `/agv/start`, `/agv/stop`, `/agv/emergency-stop`, `/agv/status`, `/agv/map`
+- **Vision → Grid Mapping**: Đổi radian (heading/10 × π/180), cộng camera offset (+300mm), kiểm tra biên mảng. Bỏ qua obstacle inflation (KISS)
 
 ## Tiến độ hiện tại
 
