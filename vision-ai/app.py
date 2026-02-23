@@ -36,9 +36,31 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_NAME = "best.pt"  # Small model (~22MB), good balance speed/accuracy
+MODEL_NAME = "best.pt"  # Fine-tuned YOLOv11s for warehouse objects
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 CAMERA_IMAGE_PATH = PROJECT_ROOT / "camera" / "images" / "latest.jpg"
+
+# ---------------------------------------------------------------------------
+# Distance Estimation — Pinhole Camera Model
+# ---------------------------------------------------------------------------
+# Formula: distance = (real_object_height × focal_length) / bbox_pixel_height
+#
+# focal_length (pixels) ≈ image_width / (2 × tan(FOV/2))
+# For typical 640×480 webcam with ~60° horizontal FOV:
+#   focal_length ≈ 640 / (2 × tan(30°)) ≈ 554 pixels
+#
+# Adjust FOCAL_LENGTH_PX if using a different camera.
+# ---------------------------------------------------------------------------
+FOCAL_LENGTH_PX = 554.0
+
+# Known real-world heights for each trained class (meters)
+# Used by DistanceEstimator to convert bbox size → distance
+KNOWN_OBJECT_HEIGHTS_M = {
+    "truck":       0.30,   # toy truck / small warehouse vehicle
+    "fan":         0.40,   # tabletop fan
+    "bolling-pin": 0.38,   # bowling pin
+}
+DEFAULT_OBJECT_HEIGHT_M = 0.35  # fallback for unknown classes
 
 # Logging setup
 logging.basicConfig(
@@ -57,6 +79,55 @@ try:
 except ImportError:
     DB_AVAILABLE = False
     logger.warning("common.db_logger not found — running without database logging")
+
+
+# ===========================================================================
+# DistanceEstimator — Single Responsibility: Distance calculation ONLY
+# ===========================================================================
+class DistanceEstimator:
+    """
+    Estimate object distance from bounding box using pinhole camera model.
+
+    Formula:
+        distance = (real_height × focal_length) / bbox_pixel_height
+
+    Limitations:
+        - Assumes object is upright and fully visible
+        - Accuracy depends on focal_length calibration
+        - Not a replacement for LiDAR/depth sensor in production
+
+    For this mini-project, provides reasonable estimates for
+    agv-control (C#) to map obstacles onto the 40×20 grid.
+    """
+
+    def __init__(
+        self,
+        focal_length_px: float = FOCAL_LENGTH_PX,
+        known_heights: dict = None,
+        default_height: float = DEFAULT_OBJECT_HEIGHT_M,
+    ):
+        self.focal_length_px = focal_length_px
+        self.known_heights = known_heights or KNOWN_OBJECT_HEIGHTS_M
+        self.default_height = default_height
+
+    def estimate(self, object_class: str, bbox_height_px: int) -> float | None:
+        """
+        Estimate distance to detected object.
+
+        Args:
+            object_class: YOLO class name (e.g., "truck", "fan")
+            bbox_height_px: Bounding box height in pixels
+
+        Returns:
+            Estimated distance in meters, or None if bbox_height is invalid
+        """
+        if bbox_height_px <= 0:
+            return None
+
+        real_height = self.known_heights.get(object_class, self.default_height)
+        distance = (real_height * self.focal_length_px) / bbox_height_px
+
+        return round(distance, 2)
 
 
 # ===========================================================================
@@ -79,12 +150,13 @@ class YoloDetector:
 
     def __init__(self, model_name: str = MODEL_NAME):
         """
-        Load YOLO model.
+        Load YOLO model and initialize distance estimator.
 
         Args:
             model_name: Model filename (auto-downloads from ultralytics hub)
         """
         self.model_name = model_name
+        self.distance_estimator = DistanceEstimator()
         logger.info(f"Loading YOLO model: {model_name}...")
 
         try:
@@ -143,12 +215,18 @@ class YoloDetector:
                 class_id = int(box.cls[0])
                 object_class = result.names[class_id]
 
+                # Estimate distance from bounding box height (pinhole camera model)
+                bbox_height_px = int(y2) - int(y1)
+                distance_meters = self.distance_estimator.estimate(
+                    object_class, bbox_height_px
+                )
+
                 detections.append({
                     "object_class": object_class,
                     "confidence": confidence,
                     "bbox": bbox_normalized,
                     "bbox_pixels": bbox_pixels,
-                    "distance_meters": None,  # Placeholder — needs depth estimation
+                    "distance_meters": distance_meters,
                 })
 
         return {
