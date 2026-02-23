@@ -1,0 +1,6 @@
+@AgvControl_HostAddress = http://localhost:5034
+
+GET {{AgvControl_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
