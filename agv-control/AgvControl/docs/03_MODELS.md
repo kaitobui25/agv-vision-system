@@ -307,6 +307,235 @@ Nếu bạn viết `public BoundingBox Bbox { get; set; } = new();`:
 Ngược lại, dùng **`?` (cho phép `null`)** phản ánh chính xác sự thật: *"Không có dữ liệu tọa độ nào cả"*.
 
 **Quy tắc:**
-
 * Với **Danh sách (List)**: Rỗng (`new()`) là tốt, vì nó nghĩa là "túi không có đồ".
 * Với **Đối tượng cụ thể (như BoundingBox)**: Rỗng (`new()`) sẽ biến thành thông số `0`, làm sai lệch logic toán học. Nên để `null` là chuẩn nhất.
+
+
+### D. GridMap
+#### Tại sao CellType lập lại ở dưới lại có CellType[,] _grid = new CellType[Width, Height]
+
+1. **`CellType` (enum):** Quy định **nội dung** bên trong 1 ô. Nó nói rằng một ô chỉ được phép mang 1 trong 3 giá trị: `Empty`, `StaticWall`, hoặc `DynamicObstacle`.
+2. **`[Width, Height]`**: Đây là cú pháp tạo **mảng 2 chiều** trong C# (bạn cứ tưởng tượng nó như một cái bàn cờ cờ vua hoặc bảng Excel).
+
+Dòng code `new CellType[Width, Height];` mang ý nghĩa:
+*"Hãy tạo ra một mảng 2 chiều (bàn cờ) có chiều rộng 40 (`Width`) và chiều cao 20 (`Height`). 
+Tổng cộng có 800 ô. Và **mỗi ô** trong 800 ô này sẽ chứa dữ liệu là kiểu `CellType`."*
+
+Ví dụ thực tế khi chạy:
+
+* Ô `_grid[0, 0]` có thể mang giá trị `CellType.StaticWall`
+* Ô `_grid[5, 5]` có thể mang giá trị `CellType.Empty`
+
+Giống với cách bạn khai báo một mảng số nguyên `new int[40, 20]`, nhưng thay vì mỗi ô chứa một số `int` bất kỳ, thì mỗi ô ở đây chỉ được chứa các trạng thái đã định nghĩa sẵn trong `CellType`.
+
+#### Tại sao [,]
+
+Ký hiệu `[,]` là cú pháp đặc trưng của C# dùng để khai báo **Mảng 2 chiều (2D Array)** có cấu trúc hình chữ nhật hoàn hảo (ma trận).
+
+Dấu phẩy `,` ở giữa dùng để ngăn cách các chiều (dimensions) với nhau:
+
+* **`[]`** (Không có dấu phẩy): Mảng 1 chiều (như 1 hàng ngang).
+* **`[,]`** (Có 1 dấu phẩy): Mảng 2 chiều (có hàng và cột, như cái bàn cờ).
+* **`[,,]`** (Có 2 dấu phẩy): Mảng 3 chiều (như một khối rubik).
+
+**Tại sao C# lại đẻ ra cái này mà không dùng `[][]` như nhiều ngôn ngữ khác?**
+
+* `[,]` (C# gọi là **Rectangular Array**): Đảm bảo 100% tạo ra một hình chữ nhật chuẩn (ví dụ 40 cột, mỗi cột đúng 20 ô). Nó cấp phát một khối bộ nhớ liền mạch, chạy rất nhanh và hoàn hảo để làm bản đồ tọa độ `(x, y)` cho xe AGV.
+* `[][]` (C# gọi là **Jagged Array** - Mảng lởm chởm): Là "mảng chứa các mảng". Hàng 1 có thể có 5 ô, hàng 2 có 10 ô, hàng 3 có 2 ô... không phù hợp để làm bản đồ nhà kho vuông vức.
+
+#### Giới thiệu file GirdMap
+
+File `GridMap.cs` là mô hình đại diện cho bản đồ nhà kho 2D, đóng vai trò như một "bàn cờ" để thuật toán A* tính toán đường đi cho xe AGV.
+
+Dưới đây là các thành phần chính cấu tạo nên nó:
+
+**1. `CellType` (Kiểu liệt kê trạng thái ô)**
+Định nghĩa 3 loại địa hình có thể có trên bản đồ:
+
+* `Empty`: Ô trống, xe đi được.
+* `StaticWall`: Tường hoặc kệ hàng cố định (không bao giờ đổi).
+* `DynamicObstacle`: Vật cản động do AI vừa phát hiện ra.
+
+**2. Các hằng số kích thước (Constants)**
+Quy định mảng có 40 cột (`Width = 40`) và 20 hàng (`Height = 20`). Mỗi ô đại diện cho `500mm` ngoài đời thực (`CellSizeMm = 500`).
+
+**3. Mảng lưu trữ lõi (`_grid`)**
+`private readonly CellType[,] _grid`: Đây là mảng 2 chiều chứa dữ liệu thực sự của 800 ô trên bản đồ, được giấu kín (`private`) để bảo vệ an toàn.
+
+**4. Nhóm hàm quản lý Tường & Vật cản**
+
+* `InitStaticWalls()`: Vẽ biên giới nhà kho và các kệ hàng. Chỉ gọi 1 lần khi phần mềm mới chạy.
+* `ClearDynamicObstacles()`: Quét sạch các vật cản AI cũ để chuẩn bị cập nhật tầm nhìn mới. (Không xóa tường cố định).
+* `SetObstacle(x, y)`: Đặt vật cản mới do AI phát hiện vào tọa độ. Hàm này tự động chặn nếu tọa độ bị lọt ra ngoài mảng hoặc đè lên tường tĩnh.
+
+**5. Nhóm hàm Tiện ích & Tính toán**
+
+* `WorldToGrid()`: "Dịch" tọa độ thực tế từ milimet (ví dụ: x=1500mm, y=2000mm) thành tọa độ của mảng (ô số mấy).
+* `IsWalkable()`: Hàm hỏi nhanh xem AGV có được phép đi vào tọa độ (x,y) hay không (trả về `true` nếu là `Empty`).
+
+#### private readonly CellType[,] _grid = new CellType[Width, Height];
+
+* **`CellType[,] _grid`**: Dọn ra một góc nhà, dán cái nhãn: *"Chỗ này tôi chuẩn bị đặt một cái tủ 2 chiều chỉ để đựng CellType"*. (Lúc này nhà vẫn trống trơn, chưa có cái tủ nào cả).
+* **`= new CellType[Width, Height]`**: Đây là hành động **gọi thợ mộc đến đóng luôn một cái tủ khổng lồ** có 40 cột, 20 hàng (tổng 800 ngăn kéo)!
+Ngay khi cái tủ 800 ngăn kéo vừa đóng xong (chạy xong lệnh `new`), nó đã tự động nhét sẵn giá trị mặc định là `Empty` vào **kín mít cả 800 ngăn*  rồi!
+
+Sau này chạy phần mềm, sếp muốn xây tường ở đâu, sếp chỉ việc kéo đúng cái ngăn kéo ở tọa độ đó ra, vứt chữ `Empty` đi và thay bằng chữ `StaticWall` (`_grid[x,y] = CellType.StaticWall`).
+
+Readony : Chữ readonly khóa chặt cái "vỏ". Sếp đã gán new CellType[Width, Height] ở đó (hoặc gán trong hàm tạo - constructor), thì xuống các hàm khác sếp KHÔNG THỂ vứt mảng này đi để đẻ ra mảng mới.
+(Ví dụ: Cố tình viết _grid = new CellType[10, 10]; là C# nó gõ đầu ngay).
+Readonly KHÔNG khóa cái "ruột" bên trong mảng! Nghĩa là ở bất kỳ hàm nào trong class đó, sếp vẫn có thể lôi từng ô ra sửa đổi bét nhè.
+(Ví dụ: Viết _grid[0, 0] = CellType.StaticWall; thì mượt mà trơn tru, chả ai cấm).
+
+#### public CellType GetCell(int x, int y) => _grid[x, y];
+So sánh nhanh cho sếp thấy độ "phũ" của C# nhé:
+
+**1. `public CellType GetCell(int x, int y) => _grid[x, y];**`
+* **Giải thích:** Tủ `_grid` đang chứa đồ kiểu `CellType`. Sếp thò tay vào ngăn `[x, y]` lấy ra một món, và dõng dạc tuyên bố cho cả thế giới biết: *"Trả về cho tôi món đồ kiểu `CellType`!"*. Trùng khớp 100%
+
+**2. `public int GetCell(int x, int y) => _grid[x, y];**`
+
+* **Kết quả:** **BÙM! Lỗi đỏ lòm (Lỗi biên dịch).**
+* **Giải thích:** Tủ sếp đang chứa `CellType` (ví dụ như quả táo). Sếp lôi quả táo ra nhưng lại bắt cái hàm này trả về một số `int` (bắt gọi quả táo là củ hành). Thằng C# nó nguyên tắc lắm, nó gào lên ngay: *"Sếp ơi em không thể tự động biến `CellType` thành số `int` được!"*.
+
+**💡 Cách cứu vãn số 2 **
+Nếu sếp vẫn khăng khăng muốn lấy số `int` (để xem mã số bí mật của Enum là 0, 1 hay 2), sếp phải "ép" nó bằng vũ lực, gọi là Ép kiểu (Casting):
+`public int GetCell(int x, int y) => (int)_grid[x, y];`
+
+
+#### public int[,] ToArray()
+
+Nếu dọn ra một hàm thế này:
+`public CellType[,] ToArray() { return _grid; }`
+
+Thì câu chuyện ngoài đời nó sẽ diễn ra như sau:
+
+1. **`private _grid`**: Sếp giấu cái tủ `_grid` trong phòng ngủ khóa trái cửa. Không ai tự ý xông vào được.
+2. **`public ToArray()`**: Sếp mở một cái "cửa sổ giao dịch" cho người ngoài tới xin thông tin bản đồ.
+3. **`return _grid;`**: Khi người ta xin thông tin, thay vì đưa bản photo, sếp lại... **thò tay qua cửa sổ, đưa luôn cái chìa khóa phòng ngủ** cho họ!
+
+Lúc này, thằng ở file khác nó sẽ làm trò này:
+
+```csharp
+var gridNgoaiLai = banDo.ToArray();         // Nó lấy được chìa khóa từ tay sếp!
+gridNgoaiLai[0, 0] = CellType.StaticWall;   // Nó mở tủ nhà sếp ra xây ngay bức tường!
+
+```
+
+Đấy! Cái mác `private` lúc này trở nên **VÔ DỤNG**. Vì `private` chỉ cấm người ta *tự phá cửa vào nhà* (gọi tên biến trực tiếp), chứ nó **KHÔNG CẤM** sếp *tự tay dâng hiến chìa khóa* (địa chỉ vùng nhớ) cho người ngoài thông qua lệnh `return` của một hàm `public`!
+
+**Chốt hạ:** Vì mảng là kiểu tham chiếu, lệnh `return _grid` chính là hành động tuồn chìa khóa gốc ra ngoài. Thế nên sếp bắt buộc phải "chạy bằng cơm", dùng vòng lặp `for` để tạo mảng `new` (bản photo) rồi mới dám ném ra ngoài sếp ạ! 😎 Thuyết phục chưa sếp ơi? Lên kèo tiếp đi nào!
+
+#### Hình tượng hoá _grid 8x5
+
+Dạ vâng thưa sếp, em xin múa phím vẽ ngay cái "sơ đồ chiến thuật" 8x5 (Width = 8, Height = 5) cho sếp dễ thị tẩm nhé!
+
+Trong lập trình (và cả màn hình máy tính), **Gốc tọa độ (0,0) luôn nằm ở góc trên cùng bên trái**. Nó không nằm ở giữa hay ở dưới đáy như trục tọa độ Toán học ngày xưa sếp học đâu nha!
+
+Sếp nhìn cái sa bàn này là hiểu ngay:
+
+```text
+       ÂM Y (-1, -2...) 
+             |
+             |  (GỐC 0,0) ====== CHIỀU DƯƠNG X (Width: 0 đến 7) ======>
+             |      X=0   X=1   X=2   X=3   X=4   X=5   X=6   X=7
+  ÂM X      - - +-------------------------------------------------+
+(-1, -2...)     | [0,0] [1,0] [2,0] [3,0] [4,0] [5,0] [6,0] [7,0] | Y=0
+                | [0,1] [1,1] [2,1] [3,1] [4,1] [5,1] [6,1] [7,1] | Y=1
+             C  | [0,2] [1,2] [2,2] [3,2] [4,2] [5,2] [6,2] [7,2] | Y=2
+             H  | [0,3] [1,3] [2,3] [3,3] [4,3] [5,3] [6,3] [7,3] | Y=3
+             I  | [0,4] [1,4] [2,4] [3,4] [4,4] [5,4] [6,4] [7,4] | Y=4
+             Ề  +-------------------------------------------------+
+             U 
+             
+             D
+             Ư
+             Ơ
+             N
+             G 
+             
+             Y (Height: 0 đến 4)
+             |
+             v
+
+```
+
+**🔍 Giải mã sa bàn cho sếp:**
+
+1. **Điểm gốc `[0,0]`:** Nằm chễm chệ ở góc Trái - Trên cùng.
+
+
+#### Mô tả tường
+
+ Bỏ qua hệ trục tọa độ, em in ngay cho sếp cái "bản vẽ thi công" nhà xưởng 40x20, chuẩn xác đến từng milimet theo đúng đoạn code sếp vừa đưa.
+
+```text
+████████████████████████████████████████  <-- Tường trên (Top)
+█......................................█
+█......................................█
+█.........█............................█  <-- Kệ 1 bắt đầu (y=3)
+█.........█............................█
+█.........█............................█
+█.........█............................█
+█.........█............................█
+█.........█............................█  <-- Kệ 1 kết thúc (y=8)
+█......................................█
+█........................█.............█  <-- Kệ 2 bắt đầu (y=10)
+█........................█.............█
+█........................█.............█
+█........................█.............█
+█........................█.............█
+█........................█.............█
+█........................█.............█  <-- Kệ 2 kết thúc (y=16)
+█......................................█
+█......................................█
+████████████████████████████████████████  <-- Tường dưới (Bottom)
+^         ^              ^             ^
+|         |              |             |
+Tường   Cột x=10       Cột x=25      Tường
+
+```
+
+#### IMPORTANT: Always performs bounds check to prevent IndexOutOfRangeException.
+
+Sếp cứ tưởng tượng cái mảng `_grid[40, 20]` của sếp là miếng đất **đã có sổ đỏ** chính chủ, kích thước ranh giới rõ ràng.
+
+**Bounds check (kiểm tra ranh giới)** chính là việc sếp thuê một anh bảo vệ đứng canh cửa trước khi cho phép ai đó đặt đồ (`SetObstacle`) hay lấy đồ (`GetCell`) trong miếng đất này.
+
+**Tại sao bắt buộc phải có anh bảo vệ này?**
+
+1. **Đề phòng thằng camera/AI bị "ngáo":** Lỡ hệ thống thị giác AI nhận diện nhầm do chói nắng, nó báo về trung tâm có một chướng ngại vật nằm ở tọa độ trên trời `x = 999` hoặc dưới âm phủ `y = -5`.
+2. **Chống "sập tiệm" (Crash):** Nếu sếp không kiểm tra mà nhắm mắt nhét luôn cục chướng ngại vật đó vào `_grid[999, -5]`, C# sẽ lập tức quăng cái lỗi `IndexOutOfRangeException` (Lỗi vượt ranh giới) và **bắn sập toàn bộ phần mềm điều khiển!** Con xe AGV của sếp đang chạy sẽ lập tức đứng hình, lăn đùng ra chết lâm sàng.
+
+Nhờ có lệnh kiểm tra `if (x < 0 || x >= Width || y < 0 || y >= Height)`, anh bảo vệ sẽ thẳng tay "đá đít" mấy cái tọa độ ảo tưởng đó vào thùng rác, giúp xe AGV của sếp vẫn băng băng tiến bước bình an vô sự! 😎
+
+#### <param name="x">Grid X coordinate (0 to Width-1).</param>
+
+ Cái dòng `<param name="x">` này **KHÔNG PHẢI** là dòng khai báo biến cho máy tính chạy. Biến `x` và `y` sếp đã khai báo rành rành ở trong ngoặc `(int x, int y)` rồi, máy tính nó tự biết.
+
+**Vậy sinh ra cái trò `<param>` này làm chi cho rảnh?**
+
+Cái này gọi là **XML Comment** (Chú thích làm màu). Công dụng duy nhất của nó là **nịnh nọt lập trình viên**!
+
+Khi sếp viết cái dòng này, thì nửa năm sau sếp (hoặc thằng đệ của sếp) ở một file khác gõ chữ `SetObstacle(`, cái Visual Studio nó sẽ lập tức nhảy ra một cái bảng nhắc bài vàng vàng (Tooltip) ghi rõ:
+*"Ê, điền chữ x vào đây nhé, x là tọa độ từ 0 đến Width-1 nha đại ca!"*
+
+**Chốt hạ:** Viết cái này không làm code chạy nhanh hơn 1 mili-giây nào, nhưng nó giúp sếp sau này không bị "lú" khi xài lại hàm của chính mình. 
+
+
+#### WorldToGrid()
+"Dịch" tọa độ thực tế từ milimet (ví dụ: x=1500mm, y=2000mm) thành tọa độ của mảng (ô số mấy).
+
+1. **Ngoài đời thực (xMm, yMm):** Con xe AGV của sếp nó chạy bằng bánh xe, đo bằng thước dây. Nó báo về trạm: *"Sếp ơi, em đang ở tọa độ X là 2300 mm"*.
+2. **Trong code của sếp (gridX, gridY):** Cái bản đồ `_grid` lại là một cái bàn cờ chia theo từng ô (0, 1, 2, 3...).
+
+Làm sao để biết 2300mm nằm ở ô số mấy trên bàn cờ? Chính là nhờ 2 dòng này:
+
+```csharp
+int gx = (int)(xMm / CellSizeMm);
+
+```
+Giả sử sếp quy định 1 ô dài 500mm (`CellSizeMm = 500`). Máy tính sẽ lấy `2300 / 500 = 4.6`. Ép sang kiểu `(int)` nó sẽ chém mất phần lẻ, còn lại **4**. Tức là: *"À, 2300mm ngoài đời rơi đúng vào cái ô số 4 trên mảng!"*.
+
+
+
+
