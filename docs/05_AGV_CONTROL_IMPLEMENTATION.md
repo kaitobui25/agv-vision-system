@@ -10,7 +10,7 @@ Build in dependency order — check off each step after `dotnet build` succeeds:
 
 - [x] **Step 1**: NuGet packages (csproj) → `dotnet restore`
 - [x] **Step 2**: Models (ModbusRegisters, AgvState, DetectionResult, GridMap) → `dotnet build`
-- [ ] **Step 3**: appsettings.json (connection settings) → `dotnet build`
+- [x] **Step 3**: appsettings.json (connection settings) → `dotnet build`
 - [ ] **Step 4**: Services/VisionClient.cs → `dotnet build`
 - [ ] **Step 5**: Services/ModbusClient.cs → `dotnet build`
 - [ ] **Step 6**: Services/PathPlanner.cs → `dotnet build`
