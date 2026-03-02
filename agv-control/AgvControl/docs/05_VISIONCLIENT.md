@@ -338,3 +338,349 @@ Chỉ vậy thôi. Không hơn.
 
 **Một câu để nhớ:** VisionClient là người đưa tin — chạy sang nhà Python hỏi "mày thấy gì không", mang câu trả lời về, nếu Python không nhà thì về báo "không gặp được" chứ không ngã ra đường chết.
 
+## Cụ thể về Options Pattern (Mô hình Tùy chọn)
+
+### 1. Tạo khuôn
+
+```csharp
+public class VisionAiSettings
+{
+    public string BaseUrl { get; set; } = "http://localhost:8000";
+    public int TimeoutMs { get; set; } = 2000;
+}
+```
+
+### 2. Đổ thông tin vào khuôn
+bên Program.cs có.
+```bash
+builder.Services.Configure<VisionAiSettings>(builder.Configuration.GetSection("VisionAi"));
+```
+
+#### Tại sao lại là GetSection?
+```json
+{
+  "AllowedHosts": "*",
+
+  "VisionAi": {
+    "BaseUrl": "http://localhost:8000",
+    "TimeoutMs": 2000
+  }
+}
+
+```
+Hãy tưởng tượng `appsettings.json` là một **cái tủ hồ sơ**:
+
+"VisionAi" là một NGĂN KÉO (Section)
+
+Chữ `"VisionAi"` trong file JSON không phải là một giá trị đơn lẻ (như một con số hay một dòng chữ). Nó là một **JSON Object** (chứa dấu ngoặc nhọn `{ }`), bên trong nó lại chứa nhiều thông tin con khác (`BaseUrl`, `TimeoutMs`).
+
+Trong thuật ngữ của .NET, một block chứa nhiều cục thông tin con như vậy được gọi là một **Configuration Section** (Phân vùng cấu hình).
+=> Do đó, để lấy *nguyên cả cái ngăn kéo* này ra, sếp bắt buộc phải dùng lệnh **`GetSection("VisionAi")`**.
+
+C# cung cấp vài hàm khác để lấy dữ liệu từ JSON
+
+* **`GetValue<T>("Key")`:** Dùng để lấy một tờ giấy mỏng manh (giá trị đơn lẻ).
+Ví dụ, sếp muốn lấy cái `"AllowedHosts"` ở trên cùng, sếp sẽ viết:
+`builder.Configuration.GetValue<string>("AllowedHosts");`
+
+* **`Get<T>()`:** Dùng để biến đổi thẳng data thành Object. Thường người ta sẽ kết hợp nó với `GetSection`:
+`var config = builder.Configuration.GetSection("VisionAi").Get<VisionAiSettings>();`
+
+#### Tại sao builder.Configuration
+
+
+Sếp hãy tưởng tượng biến **`builder`** chính là một **Ông Giám Đốc Khởi Nghiệp**.
+
+Khi ông giám đốc này thành lập công ty (chạy app), ổng không tự làm mọi việc mà ổng chia công ty thành **các phòng ban chuyên trách**. 
+
+1. Phòng Tài liệu & Cấu hình: `builder.Configuration`
+
+Nhiệm vụ của phòng này là đi thu thập toàn bộ các thông số cài đặt từ file `appsettings.json`, từ biến môi trường (Environment Variables), từ dòng lệnh... và gom hết vào một cái "tủ hồ sơ".
+
+2. Các "phòng ban" (cái khác) của `builder` làm nhiệm vụ gì?
+
+* **`builder.Services` (Phòng Nhân Sự):** Chuyên môn tuyển dụng và đăng ký nhân viên (Dependency Injection).
+Ví dụ: `builder.Services.AddHttpClient(...)` (Tuyển một anh nhân viên tên là VisionClient). Sếp không thể bắt phòng nhân sự đi đọc file cấu hình được.
+
+* **`builder.Environment` (Phòng Ngoại Giao / Môi Trường):**
+Chuyên môn kiểm tra xem công ty đang chạy ở môi trường nào (Đang test ở máy sếp, hay đang chạy thật trên server).
+Ví dụ: `if (builder.Environment.IsDevelopment()) { ... }`
+
+* **`builder.Logging` (Phòng Giám Sát / Ghi Nhật Ký):**
+Chuyên môn ghi chép lại log hệ thống, lỗi lầm, cảnh báo.
+Ví dụ: `builder.Logging.AddConsole()` (Cho phép in lỗi ra màn hình đen).
+
+* **`builder.WebHost` (Phòng Hạ Tầng mạng):**
+Chuyên môn cấu hình cổng kết nối (Port 5000, 5001) hay server Kestrel.
+
+#### Dấu ()
+Dấu `()` bao quanh cái đống đó đơn giản là **cú pháp bắt buộc để truyền đồ vật (tham số) vào cho một hàm (Method) xử lý**.
+
+1. `Configure<VisionAiSettings>` là "Cái Máy Xay"
+Đây là tên của một hành động (một hàm). Hành động này mang ý nghĩa: *"Hãy lấy dữ liệu và đổ vào cái khuôn `VisionAiSettings` cho tôi"*.
+
+2. Cặp dấu `( )` là "Cái miệng phễu" của máy xay
+Cặp ngoặc tròn này đóng vai trò như **cái miệng phễu** để sếp ném nguyên liệu vào cho máy hoạt động.
+
+**=> Ráp lại toàn bộ quá trình:**
+Sếp bê cái ngăn kéo `builder.Configuration.GetSection("VisionAi")` ➡️ Ném vào cái phễu `( )` ➡️ Của cái máy `Configure<VisionAiSettings>`.
+
+#### Tại sao lại là `builder.Services.Configure
+
+Câu hỏi này đi thẳng vào một "đặc sản" của .NET gọi là **Options Pattern** (Mô hình tùy chọn).
+
+Vẫn tiếp tục với câu chuyện **Phòng Nhân Sự (`builder.Services`)** nhé:
+
+ 1. Hàm `Configure` làm nhiệm vụ gì đặc biệt?
+
+Khi sếp gọi `builder.Services.Configure<VisionAiSettings>(...)`, sếp đang ra một mệnh lệnh "3 trong 1" cực kỳ phức tạp cho phòng Nhân Sự mà chỉ chữ `Configure` mới làm được:
+
+1. **Tạo khuôn:** "Ê Nhân sự, tạo cho tôi một cái object từ class `VisionAiSettings`."
+2. **Đổ data:** "Đọc cái ngăn kéo JSON đưa cho, bóc từng chữ `BaseUrl`, `TimeoutMs` rót vào cái object vừa tạo nhé."
+3. **Đóng phong bì (Quan trọng nhất):** "Làm xong thì nhét cái object đó vào một cái phong bì có mác là **`IOptions<VisionAiSettings>`**, dán kín lại rồi cất vào tủ cho tôi!"
+
+ 2. Nếu sếp dùng các hàm "Cái Khác"
+
+Các hàm phổ biến nhất của `builder.Services` là `AddSingleton`, `AddScoped`, `AddTransient`.
+"""Tôi muốn tất cả mọi nơi đều xài chung 1 cục Data/Connection""",👉 AddSingleton
+"""Tôi làm API web, muốn dữ liệu an toàn cho từng User gọi tới""",👉 AddScoped
+"""Tôi chỉ cần 1 cái máy tính toán, tính xong vứt luôn cho nhẹ RAM""",👉 AddTransient
+
+#### Tổng kết
+Cuối cùng sau khi chạy xong
+```
+builder.Services.Configure<VisionAiSettings>(builder.Configuration.GetSection("VisionAi"));
+```
+Thì trong cái tủ hồ sơ của `builder.Services`, nó sẽ có thêm 1 cái khuôn(phong bì) tên là **`IOptions<VisionAiSettings>`** ("Cục Dữ Liệu VisionAi") (đã được điền số liệu từ JSON). Và bất kỳ ai (như class VisionClient) muốn lấy số này, chỉ việc giơ tay xin cái phong bì đó ra là xài được ngay, không cần phải tự đi lục file JSON nữa.
+
+### 3. Xin cái khuôn đó ra để xài
+
+```C#
+public VisionClient(IOptions<VisionAiSettings> settings)
+{        
+  _httpClient.BaseAddress = new Uri(settings.Value.BaseUrl);
+  _httpClient.Timeout = TimeSpan.FromMilliseconds(settings.Value.TimeoutMs);
+}
+```
+
+### 4. Tóm lại
+
+1. Tạo data
+```bash
+  "VisionAi": {
+    "BaseUrl": "http://localhost:8000",
+    "TimeoutMs": 2000
+  }
+```
+
+2. Tạo khuôn
+```C#
+public class VisionAiSettings
+{
+    public string BaseUrl { get; set; } = "http://localhost:8000";
+    public int TimeoutMs { get; set; } = 2000;
+}
+```
+
+3. Đổ data vào khuôn
+```C#
+builder.Services.Configure<VisionAiSettings>(builder.Configuration.GetSection("VisionAi"));
+```
+
+4. Xin cái khuôn đó ra để xài
+```C#
+public VisionClient(IOptions<VisionAiSettings> settings)
+{
+    _httpClient.BaseAddress = new Uri(settings.Value.BaseUrl);
+    _httpClient.Timeout = TimeSpan.FromMilliseconds(settings.Value.TimeoutMs);
+}
+```
+
+
+## Tại sao cần interface IVisionClient
+
+Chào sếp! Sếp hiểu ví dụ về "Tờ hợp đồng" là đã nắm được 90% bản chất của Interface rồi đấy. Để em giải thích sâu hơn tại sao cái tờ hợp đồng `IVisionClient` này lại mang lại 2 "phép thuật" là **Dễ thay thế** và **Dễ test** nhé.
+
+Trong lập trình, đây chính là chữ **D (Dependency Inversion)** trong nguyên lý SOLID mà sếp đã ghi chú ở file `VisionClient.cs`.
+
+---
+
+### 1. Tại sao lại "Dễ thay thế" (Easy to Replace)?
+
+Hãy tưởng tượng sếp viết class `AgvOrchestrator` (bộ não điều phối xe) và **KHÔNG** dùng Interface. Code sẽ trông như thế này:
+
+```csharp
+public class AgvOrchestrator 
+{
+    // Bắt chết (Hardcode) phải dùng đúng anh nhân viên VisionClient này
+    private VisionClient _vision = new VisionClient(); 
+
+    public void Run() 
+    {
+        var data = _vision.GetLatestDetectionsAsync();
+        // ... điều khiển xe ...
+    }
+}
+
+```
+
+**Vấn đề:** Giả sử nửa năm sau, công ty sếp nâng cấp hệ thống. Thay vì gọi HTTP sang Python (FastAPI), sếp muốn đọc dữ liệu trực tiếp từ cổng USB, hoặc gọi qua một giao thức siêu nhanh khác (gRPC).
+Lúc này, sếp bắt buộc phải **mở file `AgvOrchestrator.cs` ra, xóa code cũ đi và viết lại code mới**. Việc sửa đi sửa lại bộ não cốt lõi của xe rất dễ gây ra bug ngầm làm xe đâm vào tường.
+
+**Giải pháp với Interface (`IVisionClient`):**
+
+```csharp
+public class AgvOrchestrator 
+{
+    // Tôi không quan tâm anh là ai, miễn anh ký hợp đồng IVisionClient
+    private readonly IVisionClient _vision; 
+
+    public AgvOrchestrator(IVisionClient vision) 
+    {
+        _vision = vision;
+    }
+}
+
+```
+
+Bây giờ sếp có thể tạo ra N anh nhân viên khác nhau:
+
+1. `class VisionClientHttp : IVisionClient` (Gọi API Python - đang dùng)
+2. `class VisionClientUsb : IVisionClient` (Đọc thẳng từ cáp USB)
+3. `class VisionClientGrpc : IVisionClient` (Dùng gRPC cho mượt)
+
+Khi muốn đổi công nghệ, sếp **không cần sửa một dòng code nào** trong `AgvOrchestrator`. Sếp chỉ việc ra phòng hành chính (`Program.cs`) chỉ định lại: *"Từ mai, cử anh `VisionClientUsb` mang hợp đồng `IVisionClient` đi làm việc với Orchestrator nhé"*.
+=> **Rất an toàn và linh hoạt!**
+
+---
+
+### 2. Tại sao lại "Dễ test" (Easy to Test)?
+
+Trong thực tế, khi sếp muốn kiểm tra (viết Unit Test) xem thuật toán né vật cản (PathPlanner) của `AgvOrchestrator` có hoạt động đúng không, sếp sẽ gặp một rào cản cực lớn:
+
+* Nếu dùng `VisionClient` thật, sếp **bắt buộc phải bật server Python lên**, phải bật camera lên, rồi đưa tay ra trước camera để tạo vật cản. Việc test tự động bằng code trở nên bất thi!
+
+**Giải pháp với Interface (Mocking/Faking):**
+
+Nhờ có tờ hợp đồng `IVisionClient`, trong lúc chạy Test, sếp có thể thuê một "diễn viên đóng thế" (Mock) giả vờ làm AI:
+
+```csharp
+// Một class đóng thế, chỉ dùng để test, không bao giờ dùng thật
+public class FakeVisionClient : IVisionClient 
+{
+ //... nội dung ...
+}
+
+```
+Lúc này, sếp nhét anh `FakeVisionClient` này vào cho `AgvOrchestrator` chạy thử.
+`AgvOrchestrator` không hề biết đây là đồ giả (vì anh này vẫn tuân thủ đúng hợp đồng `IVisionClient`). Nhờ vậy, sếp có thể tự động test hàng ngàn kịch bản (có vật cản, không có vật cản, vật cản bên trái, vật cản bên phải...) trong chớp mắt mà **không cần bật Python, không cần bật Camera**.
+
+---
+
+### Tóm tắt lại bằng hình tượng:
+
+* **AgvOrchestrator (Giám đốc):** Chỉ cần biết đưa ra yêu cầu *"Báo cáo cho tôi xem phía trước có gì"*.
+* **IVisionClient (Tờ hợp đồng/Bản mô tả công việc):** Ghi rõ yêu cầu của Giám đốc.
+* **VisionClient (Nhân viên thật):** Chạy tụt quần gửi request HTTP sang Python để lấy data.
+* **FakeVisionClient (Nhân viên giả/Diễn viên):** Báo cáo láo (data giả) để Giám đốc diễn tập phòng cháy chữa cháy (Testing).
+
+Nhờ có tờ hợp đồng ở giữa, Giám đốc không bao giờ bị phụ thuộc vào một cá nhân nhân viên nào cả! Đổi người, hay cho người giả vào diễn tập đều trơn tru mượt mà sếp ạ.
+
+### Cụ thể code khi đổi cách kết nối sang VisionClientUsb
+
+tôi sẽ mở file `Program.cs` ra, tìm đến phần 
+```C#
+// Comment dòng cũ:
+// builder.Services.AddHttpClient<IVisionClient, VisionClient>();
+
+// Thêm dòng mới:
+builder.Services.AddSingleton<IVisionClient, VisionClientUsb>();
+
+// ... các cấu hình khác giữ nguyên ...
+```
+
+tạo file `VisionClientUsb.cs` trong thư mục `Services`
+```C#
+public class VisionClientUsb : IVisionClient
+{
+    //....nội dung....
+}
+```
+
+Note: không cần tạo lại tờ hợp đồng IVisionClient
+
+
+### Vi diệu của đa hình 
+
+1. Tờ hợp đồng (Interface) CHỈ QUY ĐỊNH "KẾT QUẢ", KHÔNG QUY ĐỊNH "CÁCH LÀM"
+
+Tờ hợp đồng `IVisionClient` mà sếp viết ra nó chỉ nói thế này:
+
+* *"Bất kể anh là ai, dùng công nghệ gì, khi tôi gọi hàm `GetLatestDetectionsAsync()`, anh **bắt buộc phải trả về cho tôi 1 cục data kiểu `VisionResponse**`."*
+* *"Khi tôi gọi hàm `HealthCheckAsync()`, anh **bắt buộc phải trả về chữ `true` hoặc `false**`."*
+
+2. Mỗi anh nhân viên (Class) sẽ TỰ VIẾT CÁCH LÀM riêng của mình
+Cùng mang tên một hàm, nhưng ruột bên trong khác nhau một trời một vực:
+
+**Anh thứ 1: `VisionClientHttp` (Nhân viên chạy đôn chạy đáo ngoài đường)**
+
+```csharp
+public Task<VisionResponse?> GetLatestDetectionsAsync()
+{
+    // Cách làm: 
+    // 1. Kết nối Wifi / LAN
+    // 2. Gửi request đến http://localhost:8000
+    // 3. Đọc chuỗi JSON trả về
+    // 4. Dịch JSON thành object VisionResponse rồi trả kết quả cho sếp
+}
+
+```
+
+**Anh thứ 2: `VisionClientUsb` (Nhân viên ngồi nhà cắm cáp)**
+
+```csharp
+public Task<VisionResponse?> GetLatestDetectionsAsync()
+{
+    // Cách làm:
+    // 1. Mở cổng COM3 của máy tính
+    // 2. Đọc tín hiệu điện tử từ cáp USB
+    // 3. Phân tích tín hiệu thành hình ảnh
+    // 4. Nhét vào object VisionResponse rồi trả kết quả cho sếp
+}
+
+```
+
+3. Tại sao bộ não `AgvOrchestrator` lại thích điều này?
+
+Ông giám đốc `AgvOrchestrator` là một người siêu lười quan tâm đến tiểu tiết.
+
+Ông ấy không thèm biết (và cũng không cần biết) anh nhân viên đang cắm cáp USB hay đang bắt Wifi. Ông ấy chỉ cầm tờ hợp đồng `IVisionClient` lên, gọi tên nhiệm vụ `GetLatestDetectionsAsync()`, và ngửa tay ra đợi: *"Đưa cục `VisionResponse` đây cho tao để tao còn tính toán bẻ lái né vật cản!"*.
+
+## Tại sao cần ? và async
+
+```C#
+public Task<VisionResponse?> GetLatestDetectionsAsync()
+```
+1. Tại sao lại có dấu `?` (Nullable) trong `VisionResponse?`
+
+Dấu `?` mang ý nghĩa: **"Hàm này có thể trả về một object `VisionResponse` đàng hoàng, NHƯNG cũng có quyền trả về `null` (không có gì cả)".**
+
+**Tại sao lại cần nó ở đây?**
+Vì việc gọi dữ liệu qua mạng (HTTP) sang server Python là một hành động đầy rủi ro.
+
+* Lỡ server Python bị sập thì sao?
+* Lỡ đứt cáp mạng thì sao?
+* Lỡ Python xử lý quá lâu dẫn đến Timeout thì sao?
+
+2. Tại sao lại cần `Task` và `Async`?
+
+`Task` và đuôi `Async` là đại diện cho **Lập trình Bất đồng bộ (Asynchronous Programming)**.
+
+**Chuyện gì xảy ra nếu KHÔNG dùng Async (chạy Đồng bộ - Synchronous)?**
+Khi C# gọi API sang Python, nó mất khoảng 45-60ms để YOLO phân tích ảnh xong. Nếu chạy đồng bộ, cái luồng (thread) điều khiển xe AGV sẽ bị **đóng băng (block)** hoàn toàn trong 60ms đó để chờ đợi.
+Trong 60ms bị đóng băng đó, C# không thể đọc tín hiệu Modbus, không thể kiểm tra pin, không thể gửi lệnh phanh. Con xe sẽ chạy mù hoàn toàn!
+
+
+
+
+
