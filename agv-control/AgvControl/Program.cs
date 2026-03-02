@@ -1,7 +1,18 @@
+using AgvControl.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ---------------------------------------------------------------------------
+// DI Registration
+// ---------------------------------------------------------------------------
 
+// Bind "VisionAi" section from appsettings.json → VisionAiSettings
+builder.Services.Configure<VisionAiSettings>(builder.Configuration.GetSection("VisionAi"));
+
+// Register VisionClient with managed HttpClient (IHttpClientFactory)
+builder.Services.AddHttpClient<IVisionClient, VisionClient>();
+
+// Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
