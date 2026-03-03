@@ -677,8 +677,39 @@ Vì việc gọi dữ liệu qua mạng (HTTP) sang server Python là một hàn
 `Task` và đuôi `Async` là đại diện cho **Lập trình Bất đồng bộ (Asynchronous Programming)**.
 
 **Chuyện gì xảy ra nếu KHÔNG dùng Async (chạy Đồng bộ - Synchronous)?**
-Khi C# gọi API sang Python, nó mất khoảng 45-60ms để YOLO phân tích ảnh xong. Nếu chạy đồng bộ, cái luồng (thread) điều khiển xe AGV sẽ bị **đóng băng (block)** hoàn toàn trong 60ms đó để chờ đợi.
+Khi C# gọi API sang Python, nó mất khoảng 45-60ms để YOLO phân tích ảnh xong. 
+Nếu chạy đồng bộ, cái luồng (thread) điều khiển xe AGV sẽ bị **đóng băng (block)** hoàn toàn trong 60ms đó để chờ đợi.
 Trong 60ms bị đóng băng đó, C# không thể đọc tín hiệu Modbus, không thể kiểm tra pin, không thể gửi lệnh phanh. Con xe sẽ chạy mù hoàn toàn!
+
+## Hai kiểu dữ liệu HttpClient và ILogger<T>
+
+Hai kiểu dữ liệu `HttpClient` và `ILogger<T>` này nó là do chính Microsoft đúc sẵn và tặng kèm khi sếp cài đặt .NET.
+
+### 1. `HttpClient` (Chiếc xe máy giao hàng)
+
+* **Lấy ở đâu ra?** Nó nằm trong gói thư viện chuẩn của .NET có tên là `System.Net.Http`.
+* **Công dụng:** Đây là công cụ chuyên dụng để gọi mạng (gửi HTTP Request đi và nhận Response về).
+* **Ai phát cho anh nhân viên `VisionClient`?**
+Sếp nhớ dòng code này ở file `Program.cs` chứ?
+```csharp
+builder.Services.AddHttpClient<IVisionClient, VisionClient>();
+```
+Lệnh `AddHttpClient` này mang ý nghĩa: *"Phòng nhân sự hễ tuyển anh VisionClient vào làm, thì nhớ **phát kèm cho anh ấy một chiếc xe máy `HttpClient**` để anh ấy chạy ra đường mạng nhé!"*.
+Nhờ lệnh này, lúc anh `VisionClient` khởi tạo, hệ thống (DI) tự động dúi vào tay anh ấy cái `HttpClient` đã được bơm đầy xăng (đã config sẵn `BaseUrl` và `Timeout`).
+Lúc này, tất cả chỉ nằm trên giấy tờ (bản thiết kế).
+
+### 2. `ILogger<T>` (Cuốn sổ ghi chép nhật ký)
+
+* **Lấy ở đâu ra?** Nó nằm trong thư viện `Microsoft.Extensions.Logging`. Chữ `<T>` là viết tắt của Type (Kiểu/Tên class), ở đây là `ILogger<VisionClient>`.
+* **Công dụng:** Dùng để ghi lại các dòng thông báo (Log) ra màn hình console đen ngòm, hoặc ghi ra file để sếp theo dõi (ví dụ: *"Đang gọi API...", "Lỗi mất mạng rồi sếp ơi..."*).
+* **Ai phát cho anh nhân viên?**
+Cái này còn vi diệu hơn `HttpClient`. Sếp không hề thấy dòng nào đăng ký `ILogger` trong `Program.cs` cả!
+Đó là vì ngay ở dòng đầu tiên `var builder = WebApplication.CreateBuilder(args);`, ông giám đốc đã **mặc định mua sẵn hàng ngàn cuốn sổ nhật ký** cho công ty rồi.
+Bất kỳ anh nhân viên nào (class nào) trong C# khi đi làm, chỉ cần thò tay ra xin ở hàm tạo: *"Cho tôi 1 cuốn sổ ghi tên tôi nhé `ILogger<VisionClient>`"*, là hệ thống sẽ tự động in tên anh ta lên bìa sổ và phát cho anh ta xài luôn.
+
+
+
+
 
 
 
