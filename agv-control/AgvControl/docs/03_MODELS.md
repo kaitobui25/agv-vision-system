@@ -155,7 +155,7 @@ Tính năng **hiển thị tự động** của DBeaver đối với kiểu dữ
 
 Cần cả `VisionResponse` và `Detection` vì dữ liệu JSON mà Python (Vision AI) trả về có cấu trúc **phân tầng (cha - con)**. C# cần các class tương ứng để "mô phỏng" lại chính xác cấu trúc này.
 
-Hãy nhìn vào cục JSON thực tế mà Python gửi sang:
+Hãy nhìn vào cục JSON thực tế mà Python gửi sang C#:
 
 ```json
 {
