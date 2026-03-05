@@ -707,9 +707,238 @@ Cái này còn vi diệu hơn `HttpClient`. Sếp không hề thấy dòng nào 
 Đó là vì ngay ở dòng đầu tiên `var builder = WebApplication.CreateBuilder(args);`, ông giám đốc đã **mặc định mua sẵn hàng ngàn cuốn sổ nhật ký** cho công ty rồi.
 Bất kỳ anh nhân viên nào (class nào) trong C# khi đi làm, chỉ cần thò tay ra xin ở hàm tạo: *"Cho tôi 1 cuốn sổ ghi tên tôi nhé `ILogger<VisionClient>`"*, là hệ thống sẽ tự động in tên anh ta lên bìa sổ và phát cho anh ta xài luôn.
 
+Chính xác **100%**!
+
+Trong đoạn code:
+`public VisionClient(HttpClient httpClient, IOptions<VisionAiSettings> settings, ILogger<VisionClient> logger)`
+
+Thì cái biến **`httpClient`** (viết thường) nằm trong ngoặc chính là **vật phẩm thực tế (Instance)** mà ông Thủ kho (DI Container) đã nhào nặn ra và dúi vào tay anh thám tử `VisionClient`.
+
+Tuy nhiên, riêng với thằng `HttpClient` này, trong C# .NET có một phép thuật "VIP" hơn việc dùng lệnh `new` bình thường. Tiện đây em giải thích luôn độ xịn trong code của sếp:
+
+## Sự vi diệu của `AddHttpClient`
+
+Nếu sếp tự viết code chạy bằng tay kiểu: `var httpClient = new HttpClient();`, thì mỗi lần gọi, máy tính lại tạo ra một kết nối mạng mới. Nếu xe AGV quét 100ms/lần, sếp sẽ mở hàng ngàn kết nối. Dù sếp có vứt cái điện thoại đi, nhà mạng (Hệ điều hành) vẫn sẽ "giam" cái cổng kết nối đó một thời gian (gọi là lỗi cạn kiệt cổng mạng - *Socket Exhaustion*).
+
+Nhưng hãy nhìn vào file `Program.cs` của sếp, sếp đã đăng ký bằng lệnh này:
+`builder.Services.AddHttpClient<IVisionClient, VisionClient>();`
+
+Khi sếp dùng lệnh này, ông Thủ kho sẽ **KHÔNG** làm lệnh `new HttpClient()` ngu ngốc nữa. Thay vào đó, ổng làm như sau:
+
+1. Thủ kho gọi một **Nhà máy chuyên lắp ráp điện thoại** (gọi là `IHttpClientFactory`).
+2. Nhà máy này cực kỳ thông minh, nó biết cách tái sử dụng các "đường dây mạng" (Handler) bên dưới để không bao giờ bị nghẽn mạng dù sếp có gọi Python AI 10 lần/giây.
+3. Sau khi nhà máy cấu hình xong xuôi một cái `HttpClient` xịn xò và an toàn, nó mới giao cho Thủ kho.
+4. Cuối cùng, Thủ kho cầm cái `HttpClient` xịn đó, nhét thẳng vào vị trí biến `httpClient` trong Constructor của `VisionClient`.
+
+**Chốt lại:** Tư duy của sếp là hoàn toàn chính xác. Cái `httpClient` mà `VisionClient` nhận được chính là sản phẩm do Thủ kho mang tới. Việc Thủ kho dùng lệnh `new` hay dùng "Nhà máy" để tạo ra nó là việc nội bộ của Thủ kho, anh thám tử `VisionClient` cứ ngửa tay nhận đồ rồi xài (`_httpClient = httpClient`) là xong!
+
+## _httpClient = httpClient
+Tại sao người ta dâng tận tay cái `httpClient` rồi mà không xài luôn, lại còn phải vẽ trò cất vào cái kho riêng `_httpClient = httpClient`?
+
+Lý do bắt nguồn từ một luật thép trong lập trình gọi là **"Phạm vi sống của biến" (Variable Scope)**.
+
+Bi kịch "Nhận hàng ở cửa nhưng quên mang vào nhà"
+
+Cái biến `httpClient` nằm trong ngoặc tròn của hàm tạo (Constructor) nó chỉ là một **Biến cục bộ (Local variable)**. Vòng đời của nó siêu ngắn, **chỉ sống đúng trong lúc cái hàm tạo đó chạy**.
+
+Giả sử sếp **KHÔNG** gán `_httpClient = httpClient`, code sẽ thế này:
+
+```csharp
+public class VisionClient 
+{
+    // HÀM TẠO (Lúc mới tuyển dụng)
+    public VisionClient(HttpClient httpClient) 
+    {
+        // 1. Thủ kho giao cho anh thám tử cái điện thoại (httpClient).
+        // 2. Anh thám tử nhận lấy, cầm trên tay gật gù: "Điện thoại xịn đấy".
+    } 
+    // <--- ĐẾN DẤU NGOẶC NÀY, HÀM TẠO KẾT THÚC!
+    // Hệ điều hành thu hồi bộ nhớ, cái biến 'httpClient' bốc hơi luôn tại cửa!
 
 
+    // HÀM THỰC THI (Lúc đi làm việc thật)
+    public async Task GetLatestDetectionsAsync()
+    {
+        // 100ms sau, sếp bảo: "Lấy điện thoại ra gọi Python đi!"
+        // Anh thám tử sờ tay vào túi: 
+        var response = await httpClient.GetAsync(...); // ❌ LỖI ĐỎ LÒM (Lỗi biên dịch)!!!
+        
+        // C# gào lên: "httpClient là cái quái gì? Tôi không biết nó! Anh cất nó ở đâu rồi?"
+    }
+}
 
+```
+
+## IOptions<VisionAiSettings> settings
+
+```csharp
+public VisionClient(HttpClient httpClient,
+                    IOptions<VisionAiSettings> settings, // <--- 1. Nhận phong bì
+                    ILogger<VisionClient> logger)
+{
+    // ...
+    
+    // 2. Mở phong bì (settings.Value) và lấy dòng địa chỉ (BaseUrl)
+    _httpClient.BaseAddress = new Uri(settings.Value.BaseUrl); 
+    
+    // 3. Lấy tiếp thời gian chờ (TimeoutMs)
+    _httpClient.Timeout = TimeSpan.FromMilliseconds(settings.Value.TimeoutMs);
+}
+
+```
+
+**Tóm tắt lại luồng đi của dữ liệu này (gọi là Options Pattern):**
+
+1. **Từ File JSON:** Trong `appsettings.json` ghi là `"BaseUrl": "http://localhost:8000"`.
+2. **Đóng phong bì:** Khởi động app (`Program.cs`), DI đọc file JSON, nhét số liệu vào 1 object `VisionAiSettings`, rồi gói object đó vào cái vỏ `IOptions<>`.
+3. **Phát phong bì:** Truyền vào constructor của `VisionClient` dưới tên biến `settings`.
+4. **Mở phong bì:** Code của bạn lôi giá trị ra xài bằng lệnh `settings.Value.BaseUrl` (lúc này nó mang giá trị đúng bằng `"http://localhost:8000"`).
+
+## TimeSpan.FromMilliseconds
+
+`TimeSpan.FromMilliseconds` là cách tạo ra một **khoảng thời gian** từ số milliseconds.
+
+```csharp
+TimeSpan.FromMilliseconds(2000)  // = 2 giây
+TimeSpan.FromMilliseconds(100)   // = 0.1 giây
+```
+
+```csharp
+_httpClient.Timeout = TimeSpan.FromMilliseconds(settings.Value.TimeoutMs);
+// → _httpClient.Timeout = TimeSpan.FromMilliseconds(2000)
+// → Nếu Vision AI không trả lời trong 2 giây → timeout
+```
+
+**Tại sao không viết thẳng `2000` mà phải dùng `TimeSpan`?**
+
+Vì `HttpClient.Timeout` yêu cầu kiểu `TimeSpan`, không nhận số nguyên thô. Microsoft thiết kế vậy để tránh nhầm lẫn — `2000` là 2000 giây hay 2000 milliseconds?
+
+Các cách tạo `TimeSpan` thường dùng:
+
+```csharp
+TimeSpan.FromMilliseconds(100)  // 100ms
+TimeSpan.FromSeconds(5)         // 5 giây
+TimeSpan.FromMinutes(1)         // 1 phút
+```
+
+## var json = await response.Content.ReadAsStringAsync()
+
+**Chuẩn không cần chỉnh!** Bạn đã hiểu đúng hoàn toàn bản chất cốt lõi của lập trình bất đồng bộ (Asynchronous Programming) trong C# rồi đấy!
+
+### 1. Hành động giao việc
+
+Khi dòng code chạy đến `response.Content.ReadAsStringAsync()`, ứng dụng thực chất đang giao việc thao tác I/O (Input/Output - đọc dữ liệu từ card mạng/bộ nhớ) cho phần cứng hoặc hệ điều hành (chính là "con robot"). Việc đọc một file lớn hoặc đọc dữ liệu qua mạng thường rất chậm so với tốc độ xử lý của CPU.
+
+### 2. Sức mạnh của chữ `await`
+
+Nếu không có chữ `await` (chạy đồng bộ - Synchronous), "thằng chủ thớt" (ở đây gọi là *Worker Thread*) sẽ **đứng chôn chân (block)** ngay tại dòng code đó. Nó không làm gì cả, chỉ khoanh tay đứng nhìn con robot nhặt từng byte dữ liệu cho đến khi xong. Trong lúc nó đứng chơi, nếu có request khác bay vào (ví dụ ai đó gọi API `GET /agv/status`), server sẽ phải luống cuống đi gọi một nhân viên (Thread) khác ra tiếp khách, gây tốn tài nguyên RAM và CPU.
+
+Nhưng nhờ có chữ **`await`**, kịch bản thay đổi hoàn toàn:
+
+* "Thằng chủ thớt" vỗ vai con robot: *"Mày cứ ở đây đọc dữ liệu cho xong đi nhé, tao ra ngoài sảnh tiếp khách (nhận Request khác) đây, không rảnh đứng đợi mày đâu!"*.
+* Lúc này, Thread đó được giải phóng (trả về Thread Pool) và **hoàn toàn rảnh rỗi để đi phục vụ các HTTP Request khác**. Server của bạn hoạt động cực kỳ mượt mà, không bị nghẽn (non-blocking).
+
+### 3. Sự quay lại (Callback)
+
+Khi "con robot" đọc xong toàn bộ chuỗi JSON, nó sẽ bấm chuông báo hiệu: *"Tôi làm xong rồi!"*.
+Lúc này, hệ thống sẽ tự động gọi một "thằng chủ thớt" đang rảnh rỗi bước vào (không nhất thiết phải là cái anh lúc nãy, ai rảnh thì vào), cầm lấy cái biến `json` đó và chạy tiếp các dòng code bên dưới.
+
+### Liên hệ thực tế vào dự án AGV của bạn:
+
+Trong class `VisionClient`, xe AGV gọi điện sang server Python AI để hỏi xem có vật cản không. YOLOv11 xử lý mất khoảng 45-60ms.
+
+* Nếu không có `await`, luồng điều khiển của C# sẽ bị "đóng băng" hoàn toàn trong 60ms. Trong 60ms đó, nếu xe cần kiểm tra pin, đọc tọa độ bánh xe, hay nhận lệnh phanh khẩn cấp, nó sẽ **bị mù và điếc** hoàn toàn!
+* Nhờ có `await`, trong 60ms đợi Python nặn ra kết quả JSON, CPU của C# vẫn thảnh thơi đi làm hàng tá công việc khác để giữ cho xe AGV luôn trong trạng thái kiểm soát an toàn.
+
+## var response = await _httpClient.GetAsync("/detect/latest");
+
+
+Lệnh `GetAsync("/detect/latest")` là một hành động **chủ động đi đòi nợ**!
+
+Hình ảnh "con robot" ở dòng code này thực chất là một **anh Shipper** do Hệ điều hành / Card mạng quản lý. Hành trình thực tế diễn ra như sau:
+
+1. Khi dòng code chạy, anh Shipper (robot) này nổ máy xe, phóng thẳng sang "nhà" của thằng Python AI ở địa chỉ `http://localhost:8000/detect/latest`.
+2. Tới nơi, anh Shipper gõ cửa và đòi: *"Ê Python, tao được sếp C# phái sang. Mày vừa chụp được cái ảnh nào, phân tích YOLO nhanh lên rồi đưa kết quả cho tao mang về!"*.
+3. Lúc này, **anh Shipper (robot) sẽ đứng chờ tại cửa nhà Python** trong khoảng 45-60ms để đợi thằng Python chạy xong model YOLOv11s và xuất ra file JSON.
+4. Ngay khi thằng Python ném ra cục JSON `{"detections": [{"class":"box"}]}`, anh Shipper chộp lấy, phóng xe về báo cáo.
+5. Về đến nơi, anh Shipper bấm chuông báo thức: *"Xong việc rồi!"*. Lúc này, một "thằng chủ thớt" bất kỳ trong Thread Pool sẽ bước ra, cầm lấy cục JSON (biến `response`) và chạy tiếp các dòng code bên dưới.
+
+
+## var result = JsonSerializer.Deserialize<VisionResponse>(json, _jsonOptions);
+
+Câu lệnh này là **"trái tim" của việc giao tiếp giữa C# và Python** trong dự án của sếp.
+
+Để dễ hiểu, sếp cứ tưởng tượng hành động này giống như việc **"Dịch thuật và Đổ khuôn"**.
+
+Hãy mổ xẻ từng thành phần trong câu lệnh:
+`var result = JsonSerializer.Deserialize<VisionResponse>(json, _jsonOptions);`
+
+### 1. Vấn đề: C# và Python nói hai ngôn ngữ khác nhau
+
+* Sau khi anh Shipper (`GetAsync`) mang dữ liệu từ Python về, cái biến `json` lúc này chỉ là một **chuỗi văn bản (String) vô tri vô giác** trông như thế này:
+`'{"detections": [{"object_class": "box"}], "processing_time_ms": 45}'`
+* C# là một ngôn ngữ "kiểu tĩnh" (strongly-typed). Nó **không thể** hiểu và không cho phép sếp viết code kiểu: `in ra cái json["processing_time_ms"]`. Nó nhìn chuỗi text trên như một đám giun dế.
+
+### 2. Giải pháp: Máy dịch thuật `JsonSerializer.Deserialize`
+
+* **`JsonSerializer.Deserialize`**: Đây là cái "Máy dịch thuật" được Microsoft chế tạo sẵn. Nhiệm vụ của nó là đọc chuỗi văn bản giun dế kia và nặn ra thành một **Đồ vật thật (Object)** trong C#.
+* **`<VisionResponse>`**: Đây là **"Cái Khuôn"** mà sếp đã định nghĩa bên file `Models/DetectionResult.cs`. Sếp đang ra lệnh cho cái máy: *"Ê máy, hãy lấy đống đất sét `json` kia, ép nó vào cái khuôn `VisionResponse` cho tao!"*.
+
+### 3. Tham số phụ trợ: `_jsonOptions` (Bí kíp dịch thuật)
+
+Python có thói quen viết chữ thường cách nhau bằng dấu gạch dưới (`snake_case`: `processing_time_ms`), còn C# lại thích viết hoa chữ cái đầu (`PascalCase`: `ProcessingTimeMs`).
+Nếu máy dịch cứng nhắc, nó sẽ bảo: *"Tôi không tìm thấy chữ `ProcessingTimeMs` nào trong cục JSON cả"*.
+
+* Việc sếp truyền `_jsonOptions` (có chứa `PropertyNameCaseInsensitive = true`) cộng với các thẻ `[JsonPropertyName("...")]` ở file Model chính là đưa cho cái máy một quyển bí kíp: *"Cứ phiên dịch thoáng ra nhé, thấy `processing_time_ms` của Python thì tự động nhét nó vào biến `ProcessingTimeMs` của C# cho tao"*.
+
+### 4. Kết quả: `var result`
+
+Sau khi máy "đổ khuôn" thành công, biến `result` ra đời. Nó không còn là chuỗi text mờ nhạt nữa, mà đã trở thành một **Object C# chính hiệu**.
+
+Lúc này, ông sếp `AgvOrchestrator` có thể thoải mái và tự tin gọi:
+
+* `result.TotalObjects` (Để biết có bao nhiêu vật cản)
+* `result.ProcessingTimeMs` (Để biết AI chạy mất bao lâu)
+* `result.Detections[0].DistanceMeters` (Để lấy khoảng cách bẻ lái)
+
+## result?.TotalObjects, result?.ProcessingTimeMs
+
+`result?` là **null-conditional operator** — tức là:
+
+> "Nếu `result` là `null` thì **đừng có chạy tiếp**, trả về `null` luôn. Nếu không null thì mới lấy property."
+
+---
+
+```csharp
+// Không có ?
+result.TotalObjects    // ❌ NullReferenceException nếu result = null
+
+// Có ?
+result?.TotalObjects   // ✅ Trả về null nếu result = null, không crash
+```
+
+---
+
+Tại sao `result` có thể null? Nhìn lại flow:
+
+```csharp
+var json = await response.Content.ReadAsStringAsync();
+var result = JsonSerializer.Deserialize<VisionResponse>(json, _jsonOptions);
+```
+
+Nếu Python trả về JSON lỗi, không đúng format → `Deserialize` trả về `null` → `result = null` → nếu không có `?` thì crash ngay.
+
+---
+
+Nên `result?` là cách phòng thủ:
+
+```csharp
+_logger.LogInformation("Detected {Count} objects in {Time}ms",
+    result?.TotalObjects,     // null nếu result null → logger in "null"
+    result?.ProcessingTimeMs  // null nếu result null → logger in "null"
+);
+// Không crash, chỉ log null thôi
+```
 
 
 
