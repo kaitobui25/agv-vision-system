@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Database Configuration
 DB_CONFIG = {
-    'host': 'localhost',
+    'host': '127.0.0.1',
     'port': 5432,
     'database': 'agv_control_db',
     'user': 'postgres',
