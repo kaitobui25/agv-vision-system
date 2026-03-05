@@ -355,6 +355,18 @@ Bạn không cần phải code thủ công kiểu: `var kiem = new Kiem(); var c
 Container sẽ tự động đọc sơ đồ, tự động tìm kiếm, tự động `new` và tự động nhét các object vào đúng chỗ của nó. Việc của bạn chỉ là: *Khai báo tôi cần gì, Container sẽ lo phần còn lại*.
 
 
+## Tóm tắt lại hành trình chuẩn 100% theo lời của bạn:
+
+1. **Chuẩn bị:** Bảo với server: *"Ai cần `IVuKhi` thì phát `Kiem` nhé, và nhớ đăng ký cả `ChienBinh` nữa"*.
+2. **Khởi động:** App chạy lệnh `app.Build()`. Kho vũ khí chốt sổ.
+3. **Có lệnh gọi:** Người dùng gọi API `/chien-dau`. Server thấy API này đòi một anh `ChienBinh`.
+4. **Kiểm tra nhu cầu:** Server lôi bản thiết kế `ChienBinh` ra, thấy hàm khởi tạo `public ChienBinh(IVuKhi vuKhi)` đòi một món vũ khí.
+5. **Chế tạo (Resolve):** Server tra sổ, biết `IVuKhi` thực chất là `Kiem`. Nó tự động rèn một cây kiếm thật (`new Kiem()`).
+6. **Lắp ráp (Inject):** Server rèn xong `ChienBinh`, tiện tay truyền luôn cây `Kiem` thật vừa rèn vào làm tham số `vuKhi`. Bên trong `ChienBinh` tự lấy cây kiếm thật đó cất vào vỏ (`_vuKhi = vuKhi`).
+7. **Chiến đấu:** Lắp ráp xong xuôi, server giao `ChienBinh` (đã cầm kiếm) ra cho API chạy. Chiến binh gọi lệnh `cb.TanCong()`, mang cây kiếm đã được tiêm vào ra chém!
+8. **Dọn dẹp:** Chém xong, trả kết quả cho người dùng, server đem cả `ChienBinh` lẫn `Kiem` đi vứt (Dispose) để giải phóng RAM.
+
+
 
 ## Container resolves dependencies (Giải thích chi tiết)
 
@@ -400,3 +412,40 @@ Lúc này, **Container thực hiện việc "Resolve"**:
 * **Giảm sự phụ thuộc chặt chẽ (Loose Coupling):** Class của bạn chỉ yêu cầu "Tờ hợp đồng" (Interface), còn Container sẽ quyết định đưa "Nhân viên" (Implementation) nào vào. Điều này giúp bạn dễ dàng thay đổi công nghệ (ví dụ đổi từ gọi HTTP sang gọi USB) mà không phải sửa code ở nhiều nơi.
 
 **Tóm lại:** Container đóng vai trò như một **"Quản gia thông minh"**. Bạn chỉ cần khai báo danh sách những thứ mình cần, và khi bạn bắt đầu làm việc, Quản gia (Container) đã chuẩn bị sẵn sàng mọi công cụ (Resolve dependencies) trên bàn cho bạn.
+
+
+## **DI Container** 
+Ông thủ kho là một **object đặc biệt trong .NET**, chịu trách nhiệm 3 việc:
+
+---
+
+**1. Lưu bản đăng ký (Registry)**
+
+Khi bạn viết trong `Program.cs`:
+```csharp
+builder.Services.AddHttpClient<IVisionClient, VisionClient>();
+```
+
+`builder.Services` chính là **DI Container**. Bạn đang nói với nó: *"Ghi vào sổ: ai cần `IVisionClient` thì tạo `VisionClient` cho họ."*
+
+---
+
+**2. Tạo object khi cần (Resolve)**
+
+Khi có request đến, Controller cần `IVisionClient` — Container tự động `new VisionClient(...)` và nhét vào. Bạn không gọi `new` ở đâu cả.
+
+---
+
+**3. Quản lý vòng đời (Lifetime)**
+
+Container quyết định object đó sống bao lâu:
+
+| Đăng ký | Sống bao lâu |
+|---|---|
+| `AddSingleton` | Cả đời app |
+| `AddScoped` | 1 HTTP request |
+| `AddTransient` | Mỗi lần được inject |
+
+---
+
+**Tóm gọn:** DI Container = cái **"danh bạ + nhà máy + quản lý vòng đời"** tích hợp trong một. Thay vì bạn phải `new` thủ công mọi thứ, Container làm hết — bạn chỉ cần khai báo *"tôi cần cái này"* trong constructor.
