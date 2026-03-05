@@ -45,8 +45,17 @@ public class GridMap
     // -----------------------------------------------------------------------
     private readonly CellType[,] _grid = new CellType[Width, Height];
 
-    /// <summary>Read-only access to grid for pathfinding.</summary>
-    public CellType GetCell(int x, int y) => _grid[x, y];
+    /// <summary>
+    /// Read-only access to grid for pathfinding.
+    /// Returns StaticWall for out-of-bounds coordinates (implicit boundary wall).
+    /// </summary>
+    public CellType GetCell(int x, int y)
+    {
+        if (x < 0 || x >= Width || y < 0 || y >= Height)
+            return CellType.StaticWall;
+
+        return _grid[x, y];
+    }
 
     /// <summary>Get flat array for JSON serialization (row-major).</summary>
     public int[,] ToArray()
@@ -148,7 +157,7 @@ public class GridMap
 
     /// <summary>
     /// Check if a grid cell is walkable (not wall or obstacle).
-    /// Returns false for out-of-bounds coordinates.
+    /// Out-of-bounds coordinates are treated as walls (returns false).
     /// </summary>
     public bool IsWalkable(int x, int y)
     {
