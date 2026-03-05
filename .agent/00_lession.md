@@ -48,3 +48,27 @@ Dùng `127.0.0.1` thay vì `localhost` ở mọi nơi kết nối local:
 4. **Application layer** — business logic, DB queries, file I/O
 
 **ĐỪNG** nhảy thẳng vào application layer và đoán mò. Đo lường trước, kết luận sau.
+
+---
+
+## #3 — Bounds Check Phải Nhất Quán Trên Mọi Hàm Public
+
+**Ngày:** 2026-03-06
+
+**Vấn đề:**
+`GridMap.cs` có 3 hàm public truy cập `_grid[x, y]`: `GetCell`, `SetObstacle`, `IsWalkable`. Hai hàm sau có bounds check đầy đủ, nhưng `GetCell` lại bỏ quên → `IndexOutOfRangeException` khi A* dò ô sát mép bản đồ.
+
+**Tại sao nguy hiểm:**
+- Tạo **ảo giác an toàn**: Dev thấy `SetObstacle` và `IsWalkable` đã có guard → tự tin gọi `GetCell` mà không kiểm tra
+- Trong hệ thống AGV thực tế, exception = mất kiểm soát xe giữa nhà máy
+- Bug chỉ xuất hiện ở edge case (sát mép bản đồ) → khó phát hiện khi test
+
+**Cách fix — Pattern "Implicit Boundary Wall":**
+- `GetCell(x, y)` → trả về `CellType.StaticWall` nếu ngoài biên (coi như tường cứng)
+- `SetObstacle(x, y)` → `return false` nếu ngoài biên (bỏ qua im lặng)
+- `IsWalkable(x, y)` → `return false` nếu ngoài biên (không đi được)
+
+**Quy tắc chung:**
+- Khi nhiều hàm public cùng truy cập một data structure → **TẤT CẢ** phải có guard nhất quán, không được bỏ sót
+- Trong pathfinding/robotics: ngoài bản đồ = tường cứng, **KHÔNG** throw exception
+- Sau khi viết guard cho hàm đầu tiên, **grep tất cả hàm** truy cập cùng data structure và kiểm tra lại
