@@ -74,3 +74,10 @@ camera/images/latest.jpg
 # Training
 datasets/
 runs/
+
+# Agent
+.agent/skills/
+
+# C++
+hardware-sim/vcpkg_installed/
+

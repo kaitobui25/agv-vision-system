@@ -1,5 +1,5 @@
 #include <iostream>
-//#include <modbus.h>
+#include <modbus.h>
 
 int main() {
 	std::cout << "Hardware Sim (Modbus Server) is starting..." << std::endl;
