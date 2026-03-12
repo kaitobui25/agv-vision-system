@@ -76,8 +76,9 @@ datasets/
 runs/
 
 # Agent
-.agent/skills/
+skills/
 
 # C++
 hardware-sim/vcpkg_installed/
 
+forc#test/
