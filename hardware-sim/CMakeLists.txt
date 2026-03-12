@@ -10,7 +10,7 @@ endif()
 project ("hardware-sim")
 
 # Add source to this project's executable.
-add_executable (hardware-sim "src/main.cpp")
+add_executable (hardware-sim "src/main.cpp" )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET hardware-sim PROPERTY CXX_STANDARD 20)
