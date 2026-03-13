@@ -206,7 +206,7 @@ public class ModbusIntegrationTests : IAsyncLifetime
           Assert.Equal(ErrorCode.Ok, state.Error);
       }
 
-/*    
+    
       // =========================================================================
       // 8. Heading — turning in place (left=-500, right=+500 → rotation)
       // =========================================================================
@@ -229,9 +229,9 @@ public class ModbusIntegrationTests : IAsyncLifetime
           // Heading should have changed (any direction)
           Assert.NotEqual(before.HeadingDegrees, after.HeadingDegrees);
       }
-*/
 
-/*   
+
+   
       // =========================================================================
       // 9. Signed speed — negative speed should be preserved through roundtrip
       // =========================================================================
@@ -250,13 +250,13 @@ public class ModbusIntegrationTests : IAsyncLifetime
           Assert.True(state.ActualRightSpeed > 0,
               $"Right speed should be positive, got {state.ActualRightSpeed}");
       }
-*/
+
 
     
      // =========================================================================
      // 10. Full Lifecycle — IDLE → MOVE → STOP → RESET → IDLE
      // =========================================================================
-/*
+
      [Fact]
      public async Task FullLifecycle_IdleMoveStopResetIdle()
      {
@@ -284,5 +284,5 @@ public class ModbusIntegrationTests : IAsyncLifetime
          var s4 = await _client.ReadStatusAsync();
          Assert.Equal(StatusCode.Idle, s4.Status);
      } 
-*/
+
 }
