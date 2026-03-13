@@ -1,5 +1,5 @@
 // ==========================================================================
-// main.cpp — AGV Hardware Simulator (Modbus TCP Server)
+// main.cpp ï¿½ AGV Hardware Simulator (Modbus TCP Server)
 // ==========================================================================
 // Simulates a differential-drive AGV with Modbus TCP interface.
 // Contract: docs/04_MODBUS_REGISTER_MAP.md
@@ -8,7 +8,7 @@
 // ==========================================================================
 
 #ifdef _WIN32
-#include <winsock2.h>   // Must come before windows.h — needed for closesocket, select
+#include <winsock2.h>   // Must come before windows.h ï¿½ needed for closesocket, select
 #endif
 
 #include <cstdio>
@@ -22,7 +22,7 @@
 
 #include <modbus.h>
 
-// EAGAIN is not defined on MSVC — use EWOULDBLOCK as fallback
+// EAGAIN is not defined on MSVC ï¿½ use EWOULDBLOCK as fallback
 #ifndef EAGAIN
 #define EAGAIN EWOULDBLOCK
 #endif
@@ -134,7 +134,7 @@ double decelerate(double current_speed, double dt) {
     return current_speed * decay;
 }
 
-// Main simulation step — called every SIM_TICK_MS
+// Main simulation step ï¿½ called every SIM_TICK_MS
 void simulation_tick(modbus_mapping_t* map) {
     // Read command from holding registers
     auto cmd = static_cast<Command>(map->tab_registers[2]);       // reg 1002
@@ -179,7 +179,7 @@ void simulation_tick(modbus_mapping_t* map) {
 
     case CMD_IDLE:
     default:
-        // Hold current state — if moving, keep moving
+        // Hold current state ï¿½ if moving, keep moving
         if (current_status == ST_MOVING) {
             // Continue with deceleration if no new MOVE command
             actual_left  = decelerate(actual_left, SIM_TICK_S);
@@ -223,7 +223,7 @@ void watchdog_check(modbus_mapping_t* map) {
     double elapsed_s = std::chrono::duration<double>(elapsed).count();
 
     if (elapsed_s > WATCHDOG_TIMEOUT_S && current_status != ST_ESTOPPED) {
-        printf("[SIM] WATCHDOG: No command for %.0fs — emergency stop!\n", elapsed_s);
+        printf("[SIM] WATCHDOG: No command for %.0fs ï¿½ emergency stop!\n", elapsed_s);
         actual_left  = 0.0;
         actual_right = 0.0;
         current_status = ST_ESTOPPED;
@@ -376,11 +376,18 @@ int main() {
         if (!running) break;
 
         if (client_socket == -1) {
-            // Accept failed and we're not shutting down — go back to waiting loop
+            // Accept failed and we're not shutting down  go back to waiting loop
             continue;
         }
 
         printf("[hardware-sim] Client connected!\n");
+
+        // Reset state on connect
+        current_status = ST_IDLE;
+        current_error  = ERR_OK;
+        actual_left  = 0;
+        actual_right = 0;
+
         last_cmd_time = std::chrono::steady_clock::now();
         tick_counter = 0;
 
@@ -392,7 +399,7 @@ int main() {
             // Try to receive a Modbus request (non-blocking via indication timeout)
             int rc = modbus_receive(ctx, query);
             if (rc > 0) {
-                // Valid request received — reply and reset watchdog
+                // Valid request received ï¿½ reply and reset watchdog
                 modbus_reply(ctx, query, rc, mb_mapping);
                 last_cmd_time = std::chrono::steady_clock::now();
             } else if (rc == -1) {
@@ -407,7 +414,7 @@ int main() {
                     client_connected = false;
                     continue;
                 }
-                // Timeout — no data, that's fine, continue simulation
+                // Timeout ï¿½ no data, that's fine, continue simulation
             }
 
             // Run simulation and watchdog every tick
