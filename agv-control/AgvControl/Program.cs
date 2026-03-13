@@ -12,6 +12,9 @@ builder.Services.Configure<VisionAiSettings>(builder.Configuration.GetSection("V
 // Register VisionClient with managed HttpClient (IHttpClientFactory)
 builder.Services.AddHttpClient<IVisionClient, VisionClient>();
 
+//Bind "PathPlanner" section from appsettings.json
+builder.Services.Configure<PathPlannerOptions>(builder.Configuration.GetSection("PathPlanner"));
+
 // Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
