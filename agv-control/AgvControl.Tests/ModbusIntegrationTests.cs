@@ -10,6 +10,8 @@
 // These tests are skipped by default in CI because they need a running server.
 // ==========================================================================
 
+
+
 using AgvControl.Models;
 using AgvControl.Services;
 using Microsoft.Extensions.Logging;
@@ -18,6 +20,11 @@ using Microsoft.Extensions.Options;
 namespace AgvControl.Tests;
 
 [Trait("Category", "Integration")]
+
+[CollectionDefinition("Modbus Tests", DisableParallelization = true)]
+public class ModbusCollection { }
+
+[Collection("Modbus Tests")]
 public class ModbusIntegrationTests : IAsyncLifetime
 {
     private ModbusClient _client = null!;
@@ -41,6 +48,11 @@ public class ModbusIntegrationTests : IAsyncLifetime
 
         _client = new ModbusClient(settings, logger);
         await _client.ConnectAsync();
+
+
+        // 🔧 RESET simulator before each test
+        await _client.WriteMotorCommandAsync(0, 0, CommandCode.Reset);
+        await Task.Delay(200);
     }
 
     public Task DisposeAsync()
@@ -101,53 +113,53 @@ public class ModbusIntegrationTests : IAsyncLifetime
 
 
 
-    /*
-        // =========================================================================
-        // 4. Position Change — MOVE forward should increase position
-        // =========================================================================
 
-        [Fact]
-        public async Task MoveForward_PositionShouldChange()
-        {
-            // Read initial position
-            var before = await _client.ReadStatusAsync();
+    // =========================================================================
+    // 4. Position Change — MOVE forward should increase position
+    // =========================================================================
 
-            // Send MOVE straight forward (equal motor speeds → straight line)
-            await _client.WriteMotorCommandAsync(500, 500, CommandCode.Move);
-            await Task.Delay(1000);  // Let sim run for 1 second
+    [Fact]
+    public async Task MoveForward_PositionShouldChange()
+    {
+        // Read initial position
+        var before = await _client.ReadStatusAsync();
 
-            var after = await _client.ReadStatusAsync();
+        // Send MOVE straight forward (equal motor speeds → straight line)
+        await _client.WriteMotorCommandAsync(500, 500, CommandCode.Move);
+        await Task.Delay(1000);  // Let sim run for 1 second
 
-            // At least one axis should have changed (AGV moved)
-            bool positionChanged = (after.PositionX != before.PositionX)
-                                || (after.PositionY != before.PositionY);
-            Assert.True(positionChanged,
-                $"Position should change. Before=({before.PositionX},{before.PositionY}), " +
-                $"After=({after.PositionX},{after.PositionY})");
-        }
-    */
+        var after = await _client.ReadStatusAsync();
 
-    /*    
-          // =========================================================================
-          // 5. STOP Command — gradual deceleration
-          // =========================================================================
+        // At least one axis should have changed (AGV moved)
+        bool positionChanged = (after.PositionX != before.PositionX)
+                            || (after.PositionY != before.PositionY);
+        Assert.True(positionChanged,
+            $"Position should change. Before=({before.PositionX},{before.PositionY}), " +
+            $"After=({after.PositionX},{after.PositionY})");
+    }
 
-          [Fact]
-          public async Task StopCommand_ShouldStopMotors()
-          {
-              // First move
-              await _client.WriteMotorCommandAsync(500, 500, CommandCode.Move);
-              await Task.Delay(300);
 
-              // Then stop (gradual decel over ~500ms)
-              await _client.WriteMotorCommandAsync(0, 0, CommandCode.Stop);
-              await Task.Delay(1000);  // Wait for deceleration ramp to finish
 
-              var state = await _client.ReadStatusAsync();
+    // =========================================================================
+    // 5. STOP Command — gradual deceleration
+    // =========================================================================
 
-              Assert.Equal(StatusCode.Stopped, state.Status);
-          }
-    */
+    [Fact]
+    public async Task StopCommand_ShouldStopMotors()
+    {
+        // First move
+        await _client.WriteMotorCommandAsync(500, 500, CommandCode.Move);
+        await Task.Delay(300);
+
+        // Then stop (gradual decel over ~500ms)
+        await _client.WriteMotorCommandAsync(0, 0, CommandCode.Stop);
+        await Task.Delay(1000);  // Wait for deceleration ramp to finish
+
+        var state = await _client.ReadStatusAsync();
+
+        Assert.Equal(StatusCode.Stopped, state.Status);
+    }
+
 
 
     // =========================================================================
