@@ -12,8 +12,8 @@ Build in dependency order — check off each step after `dotnet build` succeeds:
 - [x] **Step 2**: Models (ModbusRegisters, AgvState, DetectionResult, GridMap) → `dotnet build`
 - [x] **Step 3**: appsettings.json (connection settings) → `dotnet build`
 - [x] **Step 4**: Services/VisionClient.cs → `dotnet build`
-- [ ] **Step 5**: Services/ModbusClient.cs → `dotnet build`
-- [ ] **Step 6**: Services/PathPlanner.cs → `dotnet build`
+- [x] **Step 5**: Services/ModbusClient.cs → `dotnet build`
+- [x] **Step 6**: Services/PathPlanner.cs → `dotnet build`
 - [ ] **Step 7**: Data/DbLogger.cs → `dotnet build`
 - [ ] **Step 8**: Services/AgvOrchestrator.cs → `dotnet build`
 - [ ] **Step 9**: Controllers (HealthController, AgvController) → `dotnet build`
@@ -217,8 +217,8 @@ public interface IPathPlanner
 
 public class PathPlanner : IPathPlanner
 {
-    // Standard A* with 8-directional movement
-    // Heuristic: Octile distance
+    // Standard A* with 4-directional movement
+    // Heuristic: Manhattan distance
     // Returns empty list if no path found
     // Uses PriorityQueue<T> (.NET 6+)
 }
