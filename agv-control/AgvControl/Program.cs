@@ -1,4 +1,5 @@
 using AgvControl.Services;
+using AgvControl.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,10 @@ builder.Services.AddHttpClient<IVisionClient, VisionClient>();
 
 //Bind "PathPlanner" section from appsettings.json
 builder.Services.Configure<PathPlannerOptions>(builder.Configuration.GetSection("PathPlanner"));
+
+//Bind "Database" section from appsettings.json
+builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection("Database"));
+builder.Services.AddSingleton<IDbLogger, DbLogger>();
 
 // Add services to the container.
 builder.Services.AddControllers();
