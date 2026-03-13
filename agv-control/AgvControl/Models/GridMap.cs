@@ -166,4 +166,16 @@ public class GridMap
 
         return _grid[x, y] == CellType.Empty;
     }
+
+    /// <summary>
+    /// Mark a cell as static wall.
+    /// Used by InitStaticWalls() and tests.
+    /// </summary>
+    public void SetStaticWall(int x, int y)
+    {
+        if (x < 0 || x >= Width || y < 0 || y >= Height)
+            return;
+
+        _grid[x, y] = CellType.StaticWall;
+    }
 }
