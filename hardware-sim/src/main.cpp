@@ -47,7 +47,7 @@ constexpr double WHEEL_RADIUS_MM = 50.0;
 
 // ---- Timing ----
 constexpr int    SIM_TICK_MS        = 50;     // 50ms = 20 Hz
-constexpr double SIM_TICK_S         = SIM_TICK_MS / 1000.0;
+constexpr double SIM_TICK_S = SIM_TICK_MS / 1000.0;
 constexpr double WATCHDOG_TIMEOUT_S = 5.0;
 constexpr double RAMP_DURATION_S    = 0.5;    // 500ms deceleration ramp
 constexpr int    LOG_INTERVAL_TICKS = 20;     // Log every 1s (20 * 50ms)
@@ -126,6 +126,8 @@ int16_t clamp_to_int16(double val) {
     return static_cast<int16_t>(val);
 }
 
+//=========00000000000000000000=================
+/*
 // Apply deceleration ramp toward zero
 double decelerate(double current_speed, double dt) {
     if (std::abs(current_speed) < 1.0) return 0.0;
@@ -133,9 +135,27 @@ double decelerate(double current_speed, double dt) {
     if (decay < 0.0) decay = 0.0;
     return current_speed * decay;
 }
+*/
+
+double decelerate(double current_speed, double dt)
+{
+    if (std::abs(current_speed) < 1.0)
+        return 0.0;
+
+    constexpr double DECEL_RATE = 1000.0; // RPM/s
+
+    double sign = (current_speed > 0.0) ? 1.0 : -1.0;
+    double next = current_speed - sign * DECEL_RATE * dt;
+
+    // không vượt qua 0
+    if (sign > 0 && next < 0.0) return 0.0;
+    if (sign < 0 && next > 0.0) return 0.0;
+
+    return next;
+}
 
 // Main simulation step � called every SIM_TICK_MS
-void simulation_tick(modbus_mapping_t* map) {
+void simulation_tick(modbus_mapping_t* map, double dt) {
     // Read command from holding registers
     auto cmd = static_cast<Command>(map->tab_registers[2]);       // reg 1002
     int16_t cmd_left  = static_cast<int16_t>(map->tab_registers[0]);  // reg 1000
@@ -154,8 +174,8 @@ void simulation_tick(modbus_mapping_t* map) {
         break;
 
     case CMD_STOP:
-        actual_left  = decelerate(actual_left, SIM_TICK_S);
-        actual_right = decelerate(actual_right, SIM_TICK_S);
+        actual_left  = decelerate(actual_left, dt);
+        actual_right = decelerate(actual_right, dt);
         if (std::abs(actual_left) < 1.0 && std::abs(actual_right) < 1.0) {
             actual_left = actual_right = 0.0;
             current_status = ST_STOPPED;
@@ -182,8 +202,8 @@ void simulation_tick(modbus_mapping_t* map) {
         // Hold current state � if moving, keep moving
         if (current_status == ST_MOVING) {
             // Continue with deceleration if no new MOVE command
-            actual_left  = decelerate(actual_left, SIM_TICK_S);
-            actual_right = decelerate(actual_right, SIM_TICK_S);
+            actual_left  = decelerate(actual_left, dt);
+            actual_right = decelerate(actual_right, dt);
             if (std::abs(actual_left) < 1.0 && std::abs(actual_right) < 1.0) {
                 actual_left = actual_right = 0.0;
                 current_status = ST_IDLE;
@@ -201,9 +221,9 @@ void simulation_tick(modbus_mapping_t* map) {
         double v_linear  = (v_left + v_right) / 2.0;           // mm/s
         double v_angular = (v_right - v_left) / WHEEL_BASE_MM; // rad/s
 
-        pos_x   += v_linear * std::cos(heading) * SIM_TICK_S;
-        pos_y   += v_linear * std::sin(heading) * SIM_TICK_S;
-        heading += v_angular * SIM_TICK_S;
+        pos_x   += v_linear * std::cos(heading) * dt;
+        pos_y   += v_linear * std::sin(heading) * dt;
+        heading += v_angular * dt;
     }
 
     // Write results to input registers
@@ -324,6 +344,8 @@ int main() {
     uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
     int tick_counter = 0;
 
+   
+
     while (running) {
         // Wait for client connection
         printf("[hardware-sim] Waiting for client connection...\n");
@@ -393,8 +415,14 @@ int main() {
 
         // Client session loop
         bool client_connected = true;
+        auto last_tick = std::chrono::steady_clock::now();
         while (running && client_connected) {
-            auto tick_start = std::chrono::steady_clock::now();
+
+            auto now = std::chrono::steady_clock::now();
+            double dt = std::chrono::duration<double>(now - last_tick).count();
+            last_tick = now;
+
+            auto tick_start = now;
 
             // Try to receive a Modbus request (non-blocking via indication timeout)
             int rc = modbus_receive(ctx, query);
@@ -418,7 +446,7 @@ int main() {
             }
 
             // Run simulation and watchdog every tick
-            simulation_tick(mb_mapping);
+            simulation_tick(mb_mapping, dt);
             watchdog_check(mb_mapping);
 
             // Periodic logging (every ~1 second)
