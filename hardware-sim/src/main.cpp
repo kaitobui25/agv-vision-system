@@ -154,12 +154,30 @@ double decelerate(double current_speed, double dt)
     return next;
 }
 
+double ramp_speed(double current, double target, double dt)
+{
+    constexpr double ACCEL = 1200.0; // RPM per second
+
+    double diff = target - current;
+    double step = ACCEL * dt;
+
+    if (std::abs(diff) <= step)
+        return target;
+
+    return current + (diff > 0 ? step : -step);
+}
+
+
+
 // Main simulation step � called every SIM_TICK_MS
 void simulation_tick(modbus_mapping_t* map, double dt) {
     // Read command from holding registers
     auto cmd = static_cast<Command>(map->tab_registers[2]);       // reg 1002
     int16_t cmd_left  = static_cast<int16_t>(map->tab_registers[0]);  // reg 1000
     int16_t cmd_right = static_cast<int16_t>(map->tab_registers[1]);  // reg 1001
+
+    double target_left = static_cast<double>(cmd_left);
+    double target_right = static_cast<double>(cmd_right);
 
     // State machine
     switch (cmd) {
@@ -168,8 +186,9 @@ void simulation_tick(modbus_mapping_t* map, double dt) {
             // Cannot move while in error/e-stop state
             break;
         }
-        actual_left  = static_cast<double>(cmd_left);
-        actual_right = static_cast<double>(cmd_right);
+        actual_left = ramp_speed(actual_left, target_left, dt);
+        actual_right = ramp_speed(actual_right, target_right, dt);
+
         current_status = ST_MOVING;
         break;
 
