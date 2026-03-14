@@ -15,7 +15,7 @@ Build in dependency order — check off each step after `dotnet build` succeeds:
 - [x] **Step 5**: Services/ModbusClient.cs → `dotnet build`
 - [x] **Step 6**: Services/PathPlanner.cs → `dotnet build`
 - [x] **Step 7**: Data/DbLogger.cs → `dotnet build`
-- [ ] **Step 8**: Services/AgvOrchestrator.cs → `dotnet build`
+- [x] **Step 8**: Services/AgvOrchestrator.cs → `dotnet build`
 - [ ] **Step 9**: Controllers (HealthController, AgvController) → `dotnet build`
 - [ ] **Step 10**: Program.cs (DI wiring) → `dotnet build`
 
