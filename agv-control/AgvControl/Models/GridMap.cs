@@ -178,4 +178,18 @@ public class GridMap
 
         _grid[x, y] = CellType.StaticWall;
     }
+
+    /// <summary>
+    /// Create a deep copy of the grid map.
+    /// </summary>
+    public GridMap Clone()
+    {
+        var copy = new GridMap();
+
+        for (int x = 0; x < Width; x++)
+            for (int y = 0; y < Height; y++)
+                copy._grid[x, y] = _grid[x, y];
+
+        return copy;
+    }
 }
