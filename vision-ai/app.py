@@ -36,7 +36,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_NAME = "best.pt"  # Fine-tuned YOLOv11s for warehouse objects
+MODEL_NAME = Path(__file__).parent / "best.pt"  # Fine-tuned YOLOv11s for warehouse objects
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 CAMERA_IMAGE_PATH = PROJECT_ROOT / "camera" / "images" / "latest.jpg"
 
@@ -352,9 +352,12 @@ async def health_check():
         "db_connected": DB_AVAILABLE,
     }
 
-
+# Performance: Avoid blocking FastAPI event loop.
+# YOLO inference is CPU/GPU-bound and synchronous. If this endpoint were `async`,
+# the inference would run on the main event loop and block other requests.
+# Using a regular `def` lets FastAPI execute the handler in a threadpool.
 @app.post("/detect")
-async def detect_objects(
+def detect_objects(
     file: UploadFile = File(...),
     threshold: float = Query(
         default=DEFAULT_CONFIDENCE_THRESHOLD,
@@ -380,7 +383,7 @@ async def detect_objects(
         JSON with detections, processing_time_ms, total_objects
     """
     # Read uploaded image
-    image_bytes = await file.read()
+    image_bytes = file.file.read()
     image = _read_image_from_bytes(image_bytes)
 
     # Run detection
