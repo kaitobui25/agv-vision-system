@@ -154,7 +154,13 @@ public class PathPlanner : IPathPlanner
         return type switch
         {
             CellType.Empty           => _options.EmptyCost,
-            CellType.DynamicObstacle => _options.DynamicObstacleCost,
+
+            // Dynamic obstacles are treated as impassable.
+            // The AGV cannot physically drive through pallets, humans,
+            // or forklifts detected by vision. Treating them as hard
+            // obstacles avoids planner/controller disagreement loops.
+            CellType.DynamicObstacle => -1,
+            
             CellType.StaticWall      => -1,         // impassable
             _                        => _options.EmptyCost,   // AgvPosition → treat as Empty
         };

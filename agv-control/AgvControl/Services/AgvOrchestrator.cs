@@ -92,6 +92,16 @@ public class AgvOrchestrator : BackgroundService
     // -----------------------------------------------------------------------
     // Constructor
     // -----------------------------------------------------------------------
+
+    // -----------------------------------------------------------------------
+    // Vision / sensor health monitoring
+    // -----------------------------------------------------------------------
+    // Counts consecutive Vision API failures. If Vision is unavailable for
+    // several control cycles, the AGV will trigger a safe halt to avoid
+    // operating "blind".
+    private int _visionTimeoutCounter = 0;
+
+
     public AgvOrchestrator(
         IVisionClient            vision,
         IModbusClient            modbus,
@@ -312,7 +322,21 @@ public class AgvOrchestrator : BackgroundService
     private async Task UpdateObstaclesAsync()
     {
         var response = await _vision.GetLatestDetectionsAsync();
-        if (response is null) return; // Vision AI unreachable — keep existing obstacles
+
+        if (response is null)
+        {
+            _visionTimeoutCounter++;
+
+            if (_visionTimeoutCounter > 5)
+            {
+                _logger.LogError("Vision AI timeout. Entering safe halt.");
+                EmergencyStop();
+            }
+
+            return;
+        }
+
+        _visionTimeoutCounter = 0;
 
         lock (_lock)
         {
@@ -367,7 +391,17 @@ public class AgvOrchestrator : BackgroundService
         {
             // Aligned — stop spinning, transition to Moving (MOVE sent next tick)
             await SendMotorCommandAsync(0, 0, CommandCode.Stop);
-            lock (_lock) { _state = OrchestratorState.Moving; }
+
+            // Guard: state may have changed during await
+            lock(_lock)
+            {
+                if (_state != OrchestratorState.Spinning)
+                    return;
+
+                _state = OrchestratorState.Moving;
+            }
+
+
             _logger.LogDebug("Aligned to waypoint ({X},{Y}), switching to Moving", waypoint.X, waypoint.Y);
         }
         else if (angleDiff > 0)
@@ -416,17 +450,29 @@ public class AgvOrchestrator : BackgroundService
             {
                 // Trip complete
                 await SendMotorCommandAsync(0, 0, CommandCode.Stop);
-                await OnTripCompletedAsync();
+                
+                // Fire-and-forget logging to prevent blocking the 100ms Tick loop
+                _ = OnTripCompletedAsync();
+                
                 lock (_lock)
                 {
-                    _state  = OrchestratorState.Idle;
+                    if (_state != OrchestratorState.Moving)
+                        return;
+
+                    _state = OrchestratorState.Idle;
                     _target = null;
                 }
             }
             else
             {
                 // More waypoints — re-align heading
-                lock (_lock) { _state = OrchestratorState.Spinning; }
+                lock (_lock)
+                {
+                    if (_state != OrchestratorState.Moving)
+                        return;
+
+                    _state = OrchestratorState.Spinning;
+                }
             }
             return;
         }
@@ -447,7 +493,16 @@ public class AgvOrchestrator : BackgroundService
                 bool success = await TryReplanAsync();
                 lock (_lock)
                 {
-                    _state = OrchestratorState.Spinning; // always re-align after replan
+                        _state = OrchestratorState.Spinning; // always re-align after replan
+                        // SAFETY: If the next waypoint is blocked we must immediately send a STOP command.
+                        // The C++ simulator / motor controller keeps executing the last command if no new
+                        // command is issued. Returning early without sending STOP would cause the AGV to
+                        // continue moving at the previous RPM during the cooldown window, potentially
+                        // resulting in a collision. Therefore we always brake first, then handle cooldown
+                        // and path replanning.
+                        if (!cooldownElapsed)
+                            return;
+                    
                 }
 
                 if (!success)
@@ -542,6 +597,8 @@ public class AgvOrchestrator : BackgroundService
 
             lock (_lock)
             {
+                if (_target != target) return false; // Abort if StartTrip changed target mid-plan
+
                 _waypoints = newPath; // discard old waypoints completely
                 _replanCount++;
             }

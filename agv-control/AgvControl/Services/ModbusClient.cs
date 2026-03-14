@@ -79,6 +79,11 @@ public class ModbusClient : IModbusClient
     private IModbusMaster? _master;
     private bool           _isConnected;
 
+    // -----------------------------------------------------------------------
+    // Single-threaded access to Modbus operations
+    // -----------------------------------------------------------------------
+    private readonly SemaphoreSlim _modbusLock = new(1,1);
+
     // Reconnect delays: 1s → 2s → 5s (linear, not exponential — KISS)
     private static readonly int[] ReconnectDelaysMs = [1000, 2000, 5000];
 
@@ -126,19 +131,38 @@ public class ModbusClient : IModbusClient
         // Cast signed → unsigned for Modbus wire format (register stores uint16)
         ushort[] values = [(ushort)leftRpm, (ushort)rightRpm, (ushort)cmd];
 
+        // NModbus master + underlying TCP socket are NOT thread-safe.
+        // This method may be called concurrently with ReadStatusAsync()
+        // (e.g., control loop tick vs. Web API EmergencyStop).
+        // If two threads write/read simultaneously, Modbus frames can interleave
+        // and corrupt the TCP stream, causing socket exceptions.
+    // SemaphoreSlim ensures that only ONE Modbus operation executes at a time.
+        await _modbusLock.WaitAsync();
         try
         {
+
+        // Execute the blocking Modbus call on a worker thread
+        // so we don't block the async control loop thread.
             await Task.Run(() =>
                 _master!.WriteMultipleRegisters(_unitId,
                                                 ModbusRegisters.HoldingStart,
                                                 values));
         }
+
         catch (Exception ex)
         {
             _logger.LogWarning("Modbus write failed: {Message}", ex.Message);
             _isConnected = false;
-            await TryReconnectAsync();
+
+            // Start reconnect in background (do not block control loop)
+            _ = TryReconnectAsync();
+
             throw;   // Let Orchestrator know this cycle failed
+        }
+        finally
+        {
+            // Always release the lock to avoid deadlock even if an exception occurs.
+            _modbusLock.Release();
         }
     }
 
@@ -147,6 +171,7 @@ public class ModbusClient : IModbusClient
     // -----------------------------------------------------------------------
     public async Task<AgvState> ReadStatusAsync()
     {
+        await _modbusLock.WaitAsync();
         try
         {
             ushort[] regs = await Task.Run(() =>
@@ -160,8 +185,12 @@ public class ModbusClient : IModbusClient
         {
             _logger.LogWarning("Modbus read failed: {Message}", ex.Message);
             _isConnected = false;
-            await TryReconnectAsync();
+            _ = TryReconnectAsync();
             throw;   // Let Orchestrator know this cycle failed
+        }
+        finally
+        {
+            _modbusLock.Release();
         }
     }
 
@@ -195,25 +224,39 @@ public class ModbusClient : IModbusClient
 
     // -----------------------------------------------------------------------
     // Private: reconnect with linear backoff (1s → 2s → 5s)
+    // CONCURRENCY GUARD:
+    // Multiple read/write failures can trigger TryReconnectAsync() from several
+    // control-loop ticks concurrently (TickAsync runs every ~100 ms). Without a
+    // guard, this may spawn multiple parallel reconnect attempts, creating many
+    // TcpClient instances and causing a reconnect storm or socket exhaustion.
+    // The lock ensures only one reconnect routine runs at a time.
     // -----------------------------------------------------------------------
-    private async Task TryReconnectAsync()
+   private readonly SemaphoreSlim _reconnectLock = new(1,1);
+
+private async Task TryReconnectAsync()
+{
+    if (!await _reconnectLock.WaitAsync(0))
+        return;
+
+    try
     {
         foreach (int delayMs in ReconnectDelaysMs)
         {
             await Task.Delay(delayMs);
+
             try
             {
                 await ConnectAsync();
-                _logger.LogInformation("Reconnected to Modbus after {Delay}ms delay.", delayMs);
-                return;   // Success — stop retrying
+                return;
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogWarning("Reconnect attempt failed ({Delay}ms): {Message}",
-                                   delayMs, ex.Message);
             }
         }
-
-        _logger.LogError("All Modbus reconnect attempts failed. IsConnected = false.");
     }
+    finally
+    {
+        _reconnectLock.Release();
+    }
+}
 }
